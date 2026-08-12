@@ -17,7 +17,7 @@
   <Package
       Name="Runway"
       Manufacturer="Siam Ahnaf"
-      Version="1.0.1"
+      Version="1.0.2"
       UpgradeCode="DE7AB3A5-2305-433B-A500-DEE1D0E2FCBB"
       Scope="perMachine"
       Compressed="yes"
@@ -69,7 +69,7 @@
       <RegistryKey Root="HKLM" Key="SOFTWARE\Runway">
         <RegistryValue Name="InstallPath" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
         <RegistryValue Name="ExePath" Type="string" Value="[INSTALLFOLDER]Runway.exe" />
-        <RegistryValue Name="Version" Type="string" Value="1.0.1" />
+        <RegistryValue Name="Version" Type="string" Value="1.0.2" />
       </RegistryKey>
     </Component>
 

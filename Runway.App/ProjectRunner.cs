@@ -1,3 +1,4 @@
+using System.Text;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -188,6 +189,11 @@ public sealed class ProjectRunner : IDisposable
             CreateNoWindow = true,
         };
         foreach (var a in args) psi.ArgumentList.Add(a);
+        // dotnet watch writes UTF-8 (its status lines contain ⌚ and ✓). Without
+        // saying so, .NET decodes the pipe with the ANSI code page and every
+        // multi-byte character arrives as mojibake — "âŒš" instead of "⌚".
+        psi.StandardOutputEncoding = new UTF8Encoding(false);
+        psi.StandardErrorEncoding = new UTF8Encoding(false);
         // .NET disables colour the moment stdout is redirected. These opt back
         // in, so the log view can render what a real terminal would show.
         psi.Environment["DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION"] = "1";
@@ -307,6 +313,8 @@ public sealed class ProjectRunner : IDisposable
                 };
                 psi.ArgumentList.Add("build");
                 psi.ArgumentList.Add(Path.GetFileName(e.Csproj));
+                psi.StandardOutputEncoding = new UTF8Encoding(false);
+                psi.StandardErrorEncoding = new UTF8Encoding(false);
                 psi.Environment["DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION"] = "1";
                 psi.Environment["MSBUILDTERMINALLOGGER"] = "off";
 

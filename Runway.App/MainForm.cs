@@ -377,6 +377,10 @@ public sealed class MainForm : Form
                 PromptForProject();
                 break;
 
+            case "killStrays":
+                KillStrayWatchers();
+                break;
+
             case "minimise":
                 WindowState = FormWindowState.Minimized;
                 break;
@@ -601,6 +605,46 @@ public sealed class MainForm : Form
         _state.Remember(csproj, profile);
         LoadProjects();
         PushState();
+    }
+
+    /// <summary>
+    /// Find and offer to kill `dotnet watch` processes Runway did not start —
+    /// left behind by a VS Code terminal, or orphaned by an earlier crash.
+    /// They hold their ports, which makes the next start of that project fail
+    /// for reasons nothing in this window explains.
+    /// </summary>
+    private void KillStrayWatchers()
+    {
+        var owned = _runner.All()
+            .Select(e => e.Proc?.Id)
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value);
+
+        var strays = StrayProcesses.Find(owned);
+
+        if (strays.Count == 0)
+        {
+            MessageBox.Show(this,
+                "No stray dotnet watch processes found.\n\nEverything running is managed by Runway.",
+                "Runway", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var list = string.Join("\n", strays.Take(15).Select(s => $"    {s.Project}  (pid {s.Pid})"));
+        if (strays.Count > 15) list += $"\n    ...and {strays.Count - 15} more";
+
+        var answer = MessageBox.Show(this,
+            $"Found {strays.Count} dotnet watch process(es) not managed by Runway:\n\n{list}\n\n" +
+            "Terminate them and everything they started?",
+            "Terminate stray processes",
+            MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
+
+        if (answer != DialogResult.Yes) return;
+
+        var killed = StrayProcesses.Kill(strays);
+        MessageBox.Show(this,
+            $"Terminated {killed} of {strays.Count}.",
+            "Runway", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     /// <summary>

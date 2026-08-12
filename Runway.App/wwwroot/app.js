@@ -46,6 +46,8 @@
     close: S('<path d="M3.6 3.6l8.8 8.8M12.4 3.6l-8.8 8.8"/>'),
     plus: S('<path d="M8 3.2v9.6M3.2 8h9.6"/>'),
     copy: S('<rect x="5.6" y="5.6" width="8.2" height="8.2" rx="1.3"/><path d="M10.9 5.6V3.5a1.3 1.3 0 0 0-1.3-1.3H3.5a1.3 1.3 0 0 0-1.3 1.3v6.1a1.3 1.3 0 0 0 1.3 1.3h2.1"/>'),
+    // Ghost: processes still lurking that Runway did not start.
+    ghost: S('<path d="M3 13.4V7a5 5 0 0 1 10 0v6.4l-1.7-1.2-1.6 1.2-1.7-1.2-1.7 1.2-1.6-1.2z"/><path d="M6.2 6.8h.01M9.8 6.8h.01"/>'),
   };
 
   /** Briefly swap a button's icon to confirm the action landed. */
@@ -175,6 +177,9 @@
   // ── Rendering ───────────────────────────────────────────
 
   function render() {
+    // Rebuilding the list mid-drag would destroy the element being dragged.
+    if (drag) { renderQueued = true; return; }
+
     const term = filterText.trim().toLowerCase();
     let pool = projects;
     if (term) {
@@ -283,23 +288,12 @@
     const grip = el('div', 'grip');
     grip.innerHTML = ICON.grip;
     grip.title = 'Drag to reorder';
-    grip.addEventListener('mousedown', () => { c.draggable = true; });
-    grip.addEventListener('mouseup', () => { c.draggable = false; });
+    grip.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      beginDrag(p.id, c);
+    });
     c.appendChild(grip);
-
-    c.addEventListener('dragstart', (e) => {
-      dragId = p.id;
-      c.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-      // Firefox-style requirement; harmless in Chromium and keeps the drag alive.
-      try { e.dataTransfer.setData('text/plain', p.id); } catch (err) {}
-    });
-    c.addEventListener('dragend', () => {
-      c.draggable = false;
-      c.classList.remove('dragging');
-      clearDropMarks();
-      commitOrder();
-    });
 
     c.appendChild(el('span', 'dot ' + p.status));
 
@@ -436,59 +430,76 @@
   }
 
   // ── Drag to reorder ─────────────────────────────────────
+  //
+  // Pointer-driven rather than HTML5 drag-and-drop. The list re-renders on
+  // every status push, which tore the dragged element out from under the
+  // browser's drag session — the drag died and cards appeared to pile up.
+  // Here the drag owns the DOM and renders are held until it finishes.
 
-  let dragId = null;
+  /** @type {{ id: string, el: HTMLElement } | null} */
+  let drag = null;
+  let renderQueued = false;
 
-  function clearDropMarks() {
-    for (const c of scrollEl.querySelectorAll('.card')) {
-      c.classList.remove('drop-before', 'drop-after');
-    }
+  /** The section head a card sits under, so cards cannot jump between groups. */
+  function sectionOf(card) {
+    let node = card.previousElementSibling;
+    while (node && !node.classList.contains('section-head')) node = node.previousElementSibling;
+    return node;
   }
 
-  scrollEl.addEventListener('dragover', (e) => {
-    if (!dragId) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+  /** Move a card and, if its log drawer is open, the drawer with it. */
+  function moveCard(card, reference, before) {
+    const logs = card.nextElementSibling && card.nextElementSibling.classList.contains('logs')
+      ? card.nextElementSibling
+      : null;
 
-    const over = e.target.closest ? e.target.closest('.card') : null;
-    clearDropMarks();
-    if (!over || over.dataset.id === dragId) return;
+    const refLogs = reference.nextElementSibling && reference.nextElementSibling.classList.contains('logs')
+      ? reference.nextElementSibling
+      : null;
 
-    // Above the midpoint drops before, below drops after.
+    const anchor = before ? reference : (refLogs || reference).nextSibling;
+    scrollEl.insertBefore(card, anchor);
+    if (logs) scrollEl.insertBefore(logs, card.nextSibling);
+  }
+
+  function beginDrag(id, card) {
+    drag = { id, el: card };
+    card.classList.add('dragging');
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup', endDrag, { once: true });
+  }
+
+  function onDragMove(e) {
+    if (!drag) return;
+
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    const over = under && under.closest ? under.closest('.card') : null;
+    if (!over || over === drag.el) return;
+
+    // Grouping is derived from status on every render, so a card dragged into
+    // the other group would snap straight back. Keep it in its own section.
+    if (sectionOf(over) !== sectionOf(drag.el)) return;
+
     const box = over.getBoundingClientRect();
-    const before = e.clientY < box.top + box.height / 2;
-    over.classList.add(before ? 'drop-before' : 'drop-after');
-  });
+    moveCard(drag.el, over, e.clientY < box.top + box.height / 2);
+  }
 
-  scrollEl.addEventListener('drop', (e) => {
-    if (!dragId) return;
-    e.preventDefault();
+  function endDrag() {
+    if (!drag) return;
+    document.removeEventListener('mousemove', onDragMove);
+    drag.el.classList.remove('dragging');
+    drag = null;
 
-    const over = e.target.closest ? e.target.closest('.card') : null;
-    if (over && over.dataset.id !== dragId) {
-      const box = over.getBoundingClientRect();
-      const before = e.clientY < box.top + box.height / 2;
-      const moving = scrollEl.querySelector('.card[data-id="' + CSS.escape(dragId) + '"]');
-      if (moving) {
-        over.parentNode.insertBefore(moving, before ? over : over.nextSibling);
-      }
-    }
-    clearDropMarks();
-    commitOrder();
-  });
-
-  /**
-   * Read the order straight off the DOM and hand it to the host.
-   *
-   * The list is grouped into Running and Stopped, so a card can only move
-   * within its own group visually — but the saved order is one flat sequence,
-   * which is what keeps positions stable when a project later starts or stops.
-   */
-  function commitOrder() {
-    if (!dragId) return;
-    dragId = null;
+    // Read the order straight off the DOM. The saved order is one flat
+    // sequence across both groups, which is what keeps positions stable when a
+    // project later starts or stops.
     const ids = [...scrollEl.querySelectorAll('.card[data-id]')].map((c) => c.dataset.id);
     if (ids.length) post('reorder', { ids: ids });
+
+    if (renderQueued) {
+      renderQueued = false;
+      render();
+    }
   }
 
   // ── Log streaming ───────────────────────────────────────
@@ -648,6 +659,8 @@
   document.getElementById('btnClose').innerHTML = ICON.close;
 
   document.getElementById('btnAdd').innerHTML = ICON.plus;
+  document.getElementById('btnStrays').innerHTML = ICON.ghost;
+  document.getElementById('btnStrays').addEventListener('click', () => post('killStrays'));
 
   document.getElementById('btnPin').addEventListener('click', () => post('pin'));
   document.getElementById('btnMin').addEventListener('click', () => post('minimise'));

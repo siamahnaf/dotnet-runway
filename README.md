@@ -33,7 +33,7 @@ menu. Neither half can do the other's job.
 **1. The app** — run the installer:
 
 ```
-Runway-1.0.1.msi
+Runway-1.0.2.msi
 ```
 
 Installs to `C:\Program Files\Runway`, adds a Start-menu entry, and appears in
@@ -160,7 +160,7 @@ Individually:
 
 ```bash
 cd Runway.App       && dotnet publish -c Release -o dist
-cd Runway.Installer && wix build Runway.wxs -arch x64 -o ../Runway-1.0.1.msi
+cd Runway.Installer && wix build Runway.wxs -arch x64 -o ../Runway-1.0.2.msi
 cd dotnet-runway    && npm install && npm run package
 ```
 
@@ -192,6 +192,6 @@ VS Code Extensions/
 │       ├── projects.js      project discovery and launch profiles
 │       └── theme.js         resolves the VS Code theme to a palette
 ├── build.ps1              builds app + installer + extension
-├── Runway-1.0.1.msi       ← install this
+├── Runway-1.0.2.msi       ← install this
 └── dotnet-runway-3.2.2.vsix
 ```
