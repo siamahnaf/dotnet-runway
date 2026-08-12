@@ -1,0 +1,6 @@
+.vscode/**
+node_modules/**
+.gitignore
+build.js
+**/*.map
+**/.eslintrc.json

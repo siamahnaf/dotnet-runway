@@ -1,0 +1,552 @@
+/* Runway — standalone window.
+   Same design language as the VS Code panel, but with a fixed palette since
+   there is no host theme to inherit from here. Separation comes from surface
+   shade and rounded corners, never a hard border. */
+
+:root {
+  font-size: 16px;
+
+  --radius-lg: 14px;
+  --radius: 10px;
+  --radius-sm: 7px;
+
+  --bg: #181a1f;
+  --bg-bar: #14161a;
+
+  --surface-1: rgba(255, 255, 255, 0.045);
+  --surface-2: rgba(255, 255, 255, 0.085);
+  --surface-3: rgba(255, 255, 255, 0.135);
+
+  --ink: #e6e8ec;
+  --ink-dim: rgba(230, 232, 236, 0.6);
+  --ink-faint: rgba(230, 232, 236, 0.36);
+
+  --go: #3fb950;
+  --stop: #f85149;
+  --warn: #d29922;
+  --live: #58a6ff;
+
+  /* Overridden by the exported VS Code palette when one is available. */
+  --menu-bg: #22252b;
+  --log-bg: #101216;
+  --veil: rgba(24, 26, 31, 0.92);
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.35;
+  color: var(--ink);
+  background: var(--bg);
+  overflow: hidden;
+  /* Text selection in a control panel is only ever accidental. */
+  user-select: none;
+  cursor: default;
+}
+
+.grow { flex: 1 1 auto; }
+
+/* ── Title bar ─────────────────────────────────────────── */
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 40px;
+  padding: 0 6px 0 14px;
+  flex: none;
+  background: var(--bg-bar);
+}
+
+.brand {
+  font-size: 0.9375rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.count {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-dim);
+  background: var(--surface-2);
+}
+
+.count.on {
+  color: var(--go);
+  background: color-mix(in srgb, var(--go) 16%, transparent);
+}
+
+/* Window buttons sit flush to the corner, Windows-style. */
+.wb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+  flex: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.wb:hover { background: var(--surface-2); color: var(--ink); }
+.wb.danger:hover { background: #e11d48; color: #fff; }
+.wb.active { color: var(--live); background: color-mix(in srgb, var(--live) 16%, transparent); }
+.wb svg { width: 15px; height: 15px; display: block; }
+
+/* ── Toolbar ───────────────────────────────────────────── */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 12px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 2px 8px;
+  flex: none;
+}
+
+.filter {
+  width: 130px;
+  padding: 7px 13px;
+  color: var(--ink);
+  background: var(--surface-1);
+  border: none;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  transition: width 0.16s ease, background 0.16s ease;
+  user-select: text;
+}
+
+.filter::placeholder { color: var(--ink-faint); }
+
+.filter:focus {
+  width: 190px;
+  background: var(--surface-2);
+  outline: none;
+}
+
+/* ── Icon buttons ──────────────────────────────────────── */
+
+.ib {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+  flex: none;
+  transition: background 0.13s ease, color 0.13s ease;
+}
+
+.ib:hover:not(:disabled) { background: var(--surface-2); color: var(--ink); }
+.ib:active:not(:disabled) { background: var(--surface-3); }
+.ib:disabled { opacity: 0.28; cursor: default; }
+.ib svg { width: 17px; height: 17px; display: block; }
+
+.ib.go:hover:not(:disabled)   { color: var(--go);   background: color-mix(in srgb, var(--go) 15%, transparent); }
+.ib.halt:hover:not(:disabled) { color: var(--stop); background: color-mix(in srgb, var(--stop) 15%, transparent); }
+.ib.bolt:hover:not(:disabled) { color: var(--warn); background: color-mix(in srgb, var(--warn) 15%, transparent); }
+.ib.on { background: var(--surface-2); color: var(--ink); }
+
+.ib.spinning { color: var(--live); opacity: 1; cursor: progress; }
+.ib.spinning svg { transform-origin: 50% 50%; animation: spin 0.8s linear infinite; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ib.spinning svg { animation: fade 1.2s ease-in-out infinite; }
+}
+
+@keyframes fade { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* ── List ──────────────────────────────────────────────── */
+
+.scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 14px;
+}
+
+.scroll::-webkit-scrollbar { width: 10px; }
+.scroll::-webkit-scrollbar-thumb {
+  background: var(--surface-2);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+.scroll::-webkit-scrollbar-thumb:hover { background: var(--surface-3); background-clip: content-box; }
+
+.section-head {
+  padding: 11px 4px 6px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 9px 10px 12px;
+  margin-bottom: 6px;
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  transition: background 0.13s ease, opacity 0.13s ease;
+}
+
+.card:hover { background: var(--surface-2); }
+
+.card.running        { background: color-mix(in srgb, var(--go) 11%, var(--surface-1)); }
+.card.running:hover  { background: color-mix(in srgb, var(--go) 16%, var(--surface-1)); }
+.card.crashed        { background: color-mix(in srgb, var(--stop) 12%, var(--surface-1)); }
+.card.crashed:hover  { background: color-mix(in srgb, var(--stop) 17%, var(--surface-1)); }
+.card.busy           { background: color-mix(in srgb, var(--warn) 11%, var(--surface-1)); }
+
+/* ── Drag to reorder ───────────────────────────────────── */
+
+.grip {
+  display: flex;
+  align-items: center;
+  flex: none;
+  width: 13px;
+  margin-left: -4px;
+  color: var(--ink-faint);
+  opacity: 0;
+  cursor: grab;
+  transition: opacity 0.12s ease;
+}
+
+.card:hover .grip { opacity: 1; }
+.grip:active { cursor: grabbing; }
+.grip svg { width: 13px; height: 13px; }
+
+.card.dragging {
+  opacity: 0.45;
+  background: var(--surface-3);
+}
+
+/* Where the dragged card will land. */
+.card.drop-before { box-shadow: 0 -2px 0 0 var(--live); }
+.card.drop-after  { box-shadow: 0 2px 0 0 var(--live); }
+
+.dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+}
+
+.dot.running { background: var(--go);   box-shadow: 0 0 0 4px color-mix(in srgb, var(--go) 22%, transparent); }
+.dot.crashed { background: var(--stop); box-shadow: 0 0 0 4px color-mix(in srgb, var(--stop) 22%, transparent); }
+
+.dot.starting,
+.dot.building,
+.dot.stopping {
+  background: var(--warn);
+  animation: breathe 1.3s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--warn) 40%, transparent); }
+  50%      { box-shadow: 0 0 0 6px color-mix(in srgb, var(--warn) 0%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) { .dot { animation: none !important; } }
+
+.info { flex: 1 1 auto; min-width: 0; }
+
+.name {
+  font-size: 1rem;
+  font-weight: 550;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  margin-top: 2px;
+  font-size: 0.8125rem;
+  color: var(--ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta a { color: var(--live); text-decoration: none; cursor: pointer; }
+.meta a:hover { text-decoration: underline; }
+
+.sep { opacity: 0.45; margin: 0 5px; }
+
+.tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--ink-dim);
+  background: var(--surface-2);
+}
+
+.ctrls { display: flex; align-items: center; gap: 2px; flex: none; }
+
+/* ── Profile dropdown ──────────────────────────────────── */
+
+.dd { position: relative; flex: none; margin-right: 4px; }
+
+.dd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  max-width: 116px;
+  padding: 0 8px 0 11px;
+  color: var(--ink-dim);
+  background: var(--surface-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background 0.13s ease, color 0.13s ease;
+}
+
+.dd-btn:hover:not(:disabled) { color: var(--ink); background: var(--surface-3); }
+.dd-btn:disabled { opacity: 0.4; cursor: default; }
+
+.dd-val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.dd-chev { display: flex; opacity: 0.6; transition: transform 0.16s ease; }
+.dd-chev svg { width: 13px; height: 13px; }
+
+.dd.open .dd-btn { color: var(--ink); background: var(--surface-3); }
+.dd.open .dd-chev { transform: rotate(180deg); }
+
+.dd-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 150px;
+  padding: 5px;
+  border-radius: var(--radius);
+  background: var(--menu-bg);
+  box-shadow: 0 0 0 1px var(--surface-3), 0 12px 30px rgba(0, 0, 0, 0.5);
+  animation: dropIn 0.12s ease;
+}
+
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dd-menu { animation: none; }
+  .dd-chev { transition: none; }
+}
+
+.dd-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dd-item:hover { background: var(--surface-2); }
+.dd-item.sel { color: var(--live); font-weight: 600; }
+.dd-tick { display: flex; }
+.dd-tick svg { width: 13px; height: 13px; }
+
+/* ── Log drawer ────────────────────────────────────────── */
+
+.logs {
+  margin: -2px 0 7px;
+  border-radius: var(--radius);
+  background: var(--log-bg);
+  overflow: hidden;
+}
+
+.log-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 6px 4px 12px;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+
+.log-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* Compact variant for the buttons living inside the log bar. */
+.ib.sm { width: 26px; height: 24px; }
+.ib.sm svg { width: 14px; height: 14px; }
+.ib.ok { color: var(--go); }
+
+/* ── ANSI colours ──────────────────────────────────────── */
+/* Defaults are a One-Dark-ish set; the exported VS Code palette overwrites
+   them with the theme's own integrated-terminal colours. */
+
+:root {
+  --a0:  #3b4048; --a1:  #e06c75; --a2:  #98c379; --a3:  #d19a66;
+  --a4:  #61afef; --a5:  #c678dd; --a6:  #56b6c2; --a7:  #abb2bf;
+  --a8:  #5c6370; --a9:  #ff7b86; --a10: #b5e890; --a11: #ffd479;
+  --a12: #7cc7ff; --a13: #e39ef7; --a14: #7fdbe8; --a15: #ffffff;
+}
+
+.a-f0  { color: var(--a0); }   .a-f1  { color: var(--a1); }
+.a-f2  { color: var(--a2); }   .a-f3  { color: var(--a3); }
+.a-f4  { color: var(--a4); }   .a-f5  { color: var(--a5); }
+.a-f6  { color: var(--a6); }   .a-f7  { color: var(--a7); }
+.a-f8  { color: var(--a8); }   .a-f9  { color: var(--a9); }
+.a-f10 { color: var(--a10); }  .a-f11 { color: var(--a11); }
+.a-f12 { color: var(--a12); }  .a-f13 { color: var(--a13); }
+.a-f14 { color: var(--a14); }  .a-f15 { color: var(--a15); }
+
+.a-bg0  { background: var(--a0); }   .a-bg1  { background: var(--a1); }
+.a-bg2  { background: var(--a2); }   .a-bg3  { background: var(--a3); }
+.a-bg4  { background: var(--a4); }   .a-bg5  { background: var(--a5); }
+.a-bg6  { background: var(--a6); }   .a-bg7  { background: var(--a7); }
+.a-bg8  { background: var(--a8); }   .a-bg9  { background: var(--a9); }
+.a-bg10 { background: var(--a10); }  .a-bg11 { background: var(--a11); }
+.a-bg12 { background: var(--a12); }  .a-bg13 { background: var(--a13); }
+.a-bg14 { background: var(--a14); }  .a-bg15 { background: var(--a15); }
+
+.a-b   { font-weight: 700; }
+.a-dim { opacity: 0.65; }
+.a-i   { font-style: italic; }
+.a-u   { text-decoration: underline; }
+
+.log-body {
+  max-height: 200px;
+  overflow: auto;
+  margin: 0;
+  padding: 10px 13px;
+  font-family: "Cascadia Mono", Consolas, ui-monospace, monospace;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--ink-dim);
+  user-select: text;
+  cursor: text;
+}
+
+.log-body::-webkit-scrollbar { width: 10px; }
+.log-body::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+/* ── Resize grips ──────────────────────────────────────── */
+/* The window keeps its sizing frame but reserves no visible space for it, so
+   Windows never reports a border hit. These strips supply that instead. */
+
+.rz { position: fixed; z-index: 90; }
+
+.rz.n { top: 0; left: 6px; right: 6px; height: 5px; cursor: ns-resize; }
+.rz.s { bottom: 0; left: 6px; right: 6px; height: 5px; cursor: ns-resize; }
+.rz.w { left: 0; top: 6px; bottom: 6px; width: 5px; cursor: ew-resize; }
+.rz.e { right: 0; top: 6px; bottom: 6px; width: 5px; cursor: ew-resize; }
+
+.rz.nw { top: 0; left: 0; width: 8px; height: 8px; cursor: nwse-resize; }
+.rz.se { bottom: 0; right: 0; width: 8px; height: 8px; cursor: nwse-resize; }
+.rz.ne { top: 0; right: 0; width: 8px; height: 8px; cursor: nesw-resize; }
+.rz.sw { bottom: 0; left: 0; width: 8px; height: 8px; cursor: nesw-resize; }
+
+/* ── Shutdown veil ─────────────────────────────────────── */
+
+.veil {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: var(--veil);
+  backdrop-filter: blur(2px);
+}
+
+.veil[hidden] { display: none; }
+
+.veil-spin {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2.5px solid var(--surface-3);
+  border-top-color: var(--live);
+  animation: spin 0.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .veil-spin { animation: fade 1.2s ease-in-out infinite; }
+}
+
+.veil-text {
+  font-size: 0.875rem;
+  color: var(--ink-dim);
+}
+
+/* ── Empty state ───────────────────────────────────────── */
+
+.empty {
+  margin: 8px 0 14px;
+  padding: 36px 22px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  text-align: center;
+  font-size: 0.875rem;
+  line-height: 1.75;
+  color: var(--ink-dim);
+}
+
+.empty[hidden] { display: none; }
+.empty strong { color: var(--ink); font-weight: 600; }

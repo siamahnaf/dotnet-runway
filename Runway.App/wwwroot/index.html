@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="app.css" />
+<title>Runway</title>
+</head>
+<body>
+  <!-- Custom chrome. The window itself is frameless, so this bar is the title
+       bar: dragging it moves the window, and these are the real controls. -->
+  <header class="titlebar" id="titlebar">
+    <span class="brand">Runway</span>
+    <span class="count" id="count"></span>
+    <span class="grow"></span>
+    <button class="wb" id="btnPin" title="Keep on top" aria-label="Keep on top"></button>
+    <button class="wb" id="btnMin" title="Minimise" aria-label="Minimise"></button>
+    <button class="wb danger" id="btnClose" title="Close" aria-label="Close"></button>
+  </header>
+
+  <div class="shell">
+    <div class="toolbar">
+      <input type="search" id="filter" class="filter" placeholder="Filter" aria-label="Filter projects" />
+      <span class="grow"></span>
+      <button class="ib" id="btnAdd" title="Add a project" aria-label="Add a project"></button>
+      <button class="ib" id="btnStopAll" title="Stop everything" aria-label="Stop everything"></button>
+    </div>
+
+    <div class="scroll" id="scroll"></div>
+
+    <div id="empty" class="empty" hidden>
+      <strong>Nothing here yet</strong><br />
+      Press <strong>+</strong> to add a project, or right-click one in VS Code
+      and choose <strong>Run</strong>.<br />
+      It stays in this list from then on.
+    </div>
+  </div>
+
+  <!-- Shown while running projects are being shut down on close. -->
+  <div class="veil" id="veil" hidden>
+    <div class="veil-spin" id="veilSpin"></div>
+    <div class="veil-text" id="veilText">Stopping…</div>
+  </div>
+
+  <!-- Resize grips. The window has no non-client frame left, so these strips
+       are what let Windows start an edge drag. -->
+  <div class="rz n"  data-edge="n"></div>
+  <div class="rz s"  data-edge="s"></div>
+  <div class="rz w"  data-edge="w"></div>
+  <div class="rz e"  data-edge="e"></div>
+  <div class="rz nw" data-edge="nw"></div>
+  <div class="rz ne" data-edge="ne"></div>
+  <div class="rz sw" data-edge="sw"></div>
+  <div class="rz se" data-edge="se"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

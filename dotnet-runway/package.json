@@ -1,0 +1,102 @@
+{
+  "name": "dotnet-runway",
+  "displayName": "Dotnet Runway",
+  "description": "Right-click a .NET project in the Explorer to run it in the Runway app. Navigation only — Runway itself manages the processes.",
+  "version": "3.1.0",
+  "publisher": "Siam-Ahnaf",
+  "author": {
+    "name": "Siam Ahnaf",
+    "email": "siam.ahnaf@neotechnologysolutions.com"
+  },
+  "icon": "icon.png",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "dotnet",
+    "dotnet watch",
+    "aspnetcore",
+    "launch profile",
+    "hot reload"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "scripts": {
+    "package": "node build.js",
+    "package:minor": "node build.js minor",
+    "package:major": "node build.js major"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3.2.1"
+  },
+  "contributes": {
+    "configuration": {
+      "title": "Dotnet Runway",
+      "properties": {
+        "dotnetRunway.appPath": {
+          "type": "string",
+          "default": "",
+          "description": "Full path to Runway.exe. Leave empty to auto-detect it at <workspace>/VS Code Extensions/Runway.App/dist/Runway.exe."
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "dotnetRunway.https",
+        "title": "Run with https",
+        "category": "Dotnet Runway"
+      },
+      {
+        "command": "dotnetRunway.http",
+        "title": "Run with http",
+        "category": "Dotnet Runway"
+      },
+      {
+        "command": "dotnetRunway.openApp",
+        "title": "Open Runway",
+        "category": "Dotnet Runway"
+      }
+    ],
+    "submenus": [
+      {
+        "id": "dotnetRunway.run",
+        "label": "Run"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "submenu": "dotnetRunway.run",
+          "group": "2a_dotnetwatch@1",
+          "when": "dotnetRunway.active && (explorerResourceIsFolder || resourceExtname == .csproj)"
+        }
+      ],
+      "dotnetRunway.run": [
+        {
+          "command": "dotnetRunway.https",
+          "group": "1_profiles@1"
+        },
+        {
+          "command": "dotnetRunway.http",
+          "group": "1_profiles@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "dotnetRunway.https",
+          "when": "false"
+        },
+        {
+          "command": "dotnetRunway.http",
+          "when": "false"
+        }
+      ]
+    }
+  }
+}

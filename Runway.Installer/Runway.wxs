@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Runway installer.
+
+  Per-machine, fixed location: C:\Program Files\Runway. A predictable path is
+  the point — the VS Code extension finds the app by reading the registry key
+  written below, rather than guessing or being pointed at a build folder.
+
+  Build with:  wix build Runway.wxs -o Runway-<version>.msi
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <Package
+      Name="Runway"
+      Manufacturer="Siam Ahnaf"
+      Version="1.0.0"
+      UpgradeCode="DE7AB3A5-2305-433B-A500-DEE1D0E2FCBB"
+      Scope="perMachine"
+      Compressed="yes"
+      InstallerVersion="500">
+
+    <!-- Installing a newer build replaces the old one in place, so the fixed
+         path never accumulates two copies. -->
+    <MajorUpgrade
+        AllowSameVersionUpgrades="yes"
+        DowngradeErrorMessage="A newer version of Runway is already installed. Uninstall it first." />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="RunwayIcon" SourceFile="..\Runway.App\runway.ico" />
+
+    <!-- What Apps &amp; Features shows. Without these the entry is bare. -->
+    <Property Id="ARPPRODUCTICON" Value="RunwayIcon" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/" />
+    <SetProperty Id="ARPINSTALLLOCATION" Value="[INSTALLFOLDER]" After="CostFinalize" />
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="Runway" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ShortcutFolder" Name="Runway" />
+    </StandardDirectory>
+
+    <Feature Id="Main" Title="Runway" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="RegistryEntries" />
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+
+    <!-- The published output, harvested wholesale: the exe alone is only a
+         launcher and cannot run without its DLLs and wwwroot. -->
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Files Include="..\Runway.App\dist\**">
+        <!-- Debug symbols have no business in an install. -->
+        <Exclude Files="..\Runway.App\dist\*.pdb" />
+        <Exclude Files="..\Runway.App\dist\*.xml" />
+      </Files>
+    </ComponentGroup>
+
+    <!-- How the VS Code extension locates the app. -->
+    <Component Id="RegistryEntries" Directory="INSTALLFOLDER"
+               Guid="66D96A42-65F4-43E0-A47D-0C21E4630052">
+      <RegistryKey Root="HKLM" Key="SOFTWARE\Runway">
+        <RegistryValue Name="InstallPath" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
+        <RegistryValue Name="ExePath" Type="string" Value="[INSTALLFOLDER]Runway.exe" />
+        <RegistryValue Name="Version" Type="string" Value="1.0.0" />
+      </RegistryKey>
+    </Component>
+
+    <Component Id="StartMenuShortcut" Directory="ShortcutFolder"
+               Guid="51DF6648-2B2D-40A3-BFB2-F0C754746D4D">
+      <Shortcut Id="RunwayStartMenu"
+                Name="Runway"
+                Description="Run and manage .NET projects with dotnet watch"
+                Target="[INSTALLFOLDER]Runway.exe"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="RunwayIcon" />
+      <RemoveFolder Id="RemoveShortcutFolder" Directory="ShortcutFolder" On="uninstall" />
+      <RegistryValue Root="HKLM" Key="SOFTWARE\Runway" Name="StartMenu"
+                     Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+  </Package>
+</Wix>
