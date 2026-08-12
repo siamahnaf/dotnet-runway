@@ -44,13 +44,13 @@ the app.
 **2. The extension** (optional):
 
 ```
-code --install-extension "dotnet-runway-3.1.0.vsix"
+code --install-extension "dotnet-runway-3.2.1.vsix"
 ```
 
 Or in VS Code: Extensions → `...` → **Install from VSIX**.
 
-If you run a project before installing the app, the extension offers to launch
-the installer for you.
+If you run a project before installing the app, the extension tells you Runway
+is not installed.
 
 ### Uninstall
 
@@ -133,8 +133,13 @@ Without the extension the app keeps its own dark palette.
 | `dotnetRunway.appPath` | Full path to `Runway.exe`. Leave empty to resolve it automatically |
 
 The extension looks for the app in this order: the setting above, the registry
-key the installer writes (`HKLM\SOFTWARE\Runway\ExePath`), `C:\Program
-Files\Runway`, then a local build output for development.
+key the installer writes (`HKLM\SOFTWARE\Runway\ExePath`), then
+`C:\Program Files\Runway`. If none match it prompts to install rather than
+falling back to anything — a fallback would hide the fact that the app was
+never installed.
+
+Working on the app itself? Point `dotnetRunway.appPath` at your
+`Runway.App\dist\Runway.exe` and the extension uses that instead.
 
 App state lives in `%APPDATA%\Runway\`: `state.json` (projects, order, window
 geometry), `theme.json`, and `error.log` if anything ever crashes.
@@ -188,5 +193,5 @@ VS Code Extensions/
 │       └── theme.js         resolves the VS Code theme to a palette
 ├── build.ps1              builds app + installer + extension
 ├── Runway-1.0.0.msi       ← install this
-└── dotnet-runway-3.1.0.vsix
+└── dotnet-runway-3.2.1.vsix
 ```

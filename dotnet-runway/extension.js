@@ -77,86 +77,40 @@ function installedPathFromRegistry() {
 }
 
 /**
- * Locate Runway.exe, most authoritative source first:
- * explicit setting, the installed copy, then a local build for development.
+ * Locate Runway.exe: an explicit override, then the installed copy.
+ *
+ * There is deliberately no fallback to a build folder. One used to exist and it
+ * quietly hid the fact that the app was never installed — the extension worked
+ * on the machine that built it and nowhere else, and the "not installed" prompt
+ * could never appear. Developers point `dotnetRunway.appPath` at their build.
  */
 function resolveAppPath() {
   const configured = cfg().get('appPath', '');
-  if (configured && fs.existsSync(configured)) return configured;
+  if (configured) {
+    if (fs.existsSync(configured)) return configured;
+    vscode.window.showWarningMessage(
+      `dotnetRunway.appPath points at a file that does not exist: ${configured}`
+    );
+  }
 
   const installed = installedPathFromRegistry();
   if (installed) return installed;
 
-  const candidates = [
-    path.join(process.env['ProgramFiles'] || 'C:\\Program Files', 'Runway', 'Runway.exe'),
-  ];
-  // Development fallback: running straight from the build output.
-  for (const folder of vscode.workspace.workspaceFolders || []) {
-    candidates.push(path.join(
-      folder.uri.fsPath, 'VS Code Extensions', 'Runway.App', 'dist', 'Runway.exe'));
-    candidates.push(path.join(folder.uri.fsPath, 'Runway.App', 'dist', 'Runway.exe'));
+  // The installer's fixed location, in case the registry key was lost.
+  const standard = path.join(
+    process.env['ProgramFiles'] || 'C:\\Program Files', 'Runway', 'Runway.exe');
+  try {
+    if (fs.existsSync(standard)) return standard;
+  } catch (e) {
+    // Unreadable — treat as absent.
   }
 
-  for (const candidate of candidates) {
-    try {
-      if (fs.existsSync(candidate)) return candidate;
-    } catch (e) {
-      // Unreadable path — keep looking.
-    }
-  }
   return null;
 }
 
-/** Find a bundled installer to offer, if one is sitting in the workspace. */
-function findInstaller() {
-  for (const folder of vscode.workspace.workspaceFolders || []) {
-    for (const sub of ['VS Code Extensions', '.']) {
-      try {
-        const dir = path.join(folder.uri.fsPath, sub);
-        const hit = fs.readdirSync(dir).find((f) => /^Runway-.*\.msi$/i.test(f));
-        if (hit) return path.join(dir, hit);
-      } catch (e) {
-        // Directory missing — try the next.
-      }
-    }
-  }
-  return null;
-}
-
-/**
- * Runway is missing. Offer to install it or to point at an existing copy,
- * rather than failing with a path the user is expected to work out.
- */
-async function promptToInstall() {
-  const installer = findInstaller();
-  const actions = installer ? ['Install Runway', 'Locate Runway.exe'] : ['Locate Runway.exe'];
-
-  const pick = await vscode.window.showWarningMessage(
-    'Runway is not installed. Install it to run projects from here.',
-    ...actions
-  );
-
-  if (pick === 'Install Runway' && installer) {
-    // Hand the .msi to the shell so Windows runs the normal install flow,
-    // elevation prompt included.
-    cp.spawn('cmd', ['/c', 'start', '', installer], { detached: true, stdio: 'ignore' }).unref();
-    vscode.window.showInformationMessage(
-      'Runway installer opened. Once it finishes, run your project again.'
-    );
-    return;
-  }
-
-  if (pick === 'Locate Runway.exe') {
-    const picked = await vscode.window.showOpenDialog({
-      title: 'Select Runway.exe',
-      canSelectMany: false,
-      filters: { Executable: ['exe'] },
-    });
-    if (picked && picked[0]) {
-      await cfg().update('appPath', picked[0].fsPath, vscode.ConfigurationTarget.Global);
-      vscode.window.showInformationMessage('Runway location saved.');
-    }
-  }
+/** Runway is missing. Say so; installing it is the user's call. */
+function promptToInstall() {
+  vscode.window.showWarningMessage('Runway is not installed. Install Runway to run projects.');
 }
 
 /**
