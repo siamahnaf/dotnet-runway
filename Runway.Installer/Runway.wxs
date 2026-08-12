@@ -6,14 +6,18 @@
   the point — the VS Code extension finds the app by reading the registry key
   written below, rather than guessing or being pointed at a build folder.
 
-  Build with:  wix build Runway.wxs -o Runway-<version>.msi
+  Build with:  wix build Runway.wxs -arch x64 -o Runway-<version>.msi
+
+  -arch x64 is REQUIRED. WiX defaults to x86, which sends the files to
+  Program Files (x86) and redirects the registry key into WOW6432Node — where
+  the 64-bit VS Code extension cannot see it.
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
 
   <Package
       Name="Runway"
       Manufacturer="Siam Ahnaf"
-      Version="1.0.0"
+      Version="1.0.1"
       UpgradeCode="DE7AB3A5-2305-433B-A500-DEE1D0E2FCBB"
       Scope="perMachine"
       Compressed="yes"
@@ -65,7 +69,7 @@
       <RegistryKey Root="HKLM" Key="SOFTWARE\Runway">
         <RegistryValue Name="InstallPath" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
         <RegistryValue Name="ExePath" Type="string" Value="[INSTALLFOLDER]Runway.exe" />
-        <RegistryValue Name="Version" Type="string" Value="1.0.0" />
+        <RegistryValue Name="Version" Type="string" Value="1.0.1" />
       </RegistryKey>
     </Component>
 

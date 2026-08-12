@@ -16,7 +16,9 @@ Write-Host '== installer ==' -ForegroundColor Cyan
 $wxs = Get-Content "$root\Runway.Installer\Runway.wxs" -Raw
 $version = [regex]::Match($wxs, 'Version="([0-9.]+)"').Groups[1].Value
 Push-Location "$root\Runway.Installer"
-wix build Runway.wxs -o "$root\Runway-$version.msi"
+# -arch x64 is required: WiX defaults to x86, which installs to
+# Program Files (x86) and hides the registry key in WOW6432Node.
+wix build Runway.wxs -arch x64 -o "$root\Runway-$version.msi"
 Pop-Location
 
 Write-Host '== extension ==' -ForegroundColor Cyan

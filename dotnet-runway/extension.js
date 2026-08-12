@@ -59,19 +59,24 @@ function exportTheme() {
  * a path means a relocated or upgraded install is still found.
  */
 function installedPathFromRegistry() {
-  try {
-    const out = cp.execFileSync(
-      'reg',
-      ['query', 'HKLM\\SOFTWARE\\Runway', '/v', 'ExePath'],
-      { encoding: 'utf8', timeout: 4000, windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] }
-    );
-    const match = out.match(/ExePath\s+REG_SZ\s+(.+)/i);
-    if (match) {
-      const exe = match[1].trim();
-      if (fs.existsSync(exe)) return exe;
+  // Both hives: a 64-bit installer writes the native one, a 32-bit installer
+  // gets redirected into WOW6432Node. Checking only one view means an install
+  // that plainly exists reports as missing.
+  for (const view of ['/reg:64', '/reg:32']) {
+    try {
+      const out = cp.execFileSync(
+        'reg',
+        ['query', 'HKLM\\SOFTWARE\\Runway', '/v', 'ExePath', view],
+        { encoding: 'utf8', timeout: 4000, windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] }
+      );
+      const match = out.match(/ExePath\s+REG_SZ\s+(.+)/i);
+      if (match) {
+        const exe = match[1].trim();
+        if (fs.existsSync(exe)) return exe;
+      }
+    } catch (e) {
+      // Key absent in this view — try the other.
     }
-  } catch (e) {
-    // Key absent (not installed) or reg unavailable — fall through.
   }
   return null;
 }
@@ -96,13 +101,17 @@ function resolveAppPath() {
   const installed = installedPathFromRegistry();
   if (installed) return installed;
 
-  // The installer's fixed location, in case the registry key was lost.
-  const standard = path.join(
-    process.env['ProgramFiles'] || 'C:\\Program Files', 'Runway', 'Runway.exe');
-  try {
-    if (fs.existsSync(standard)) return standard;
-  } catch (e) {
-    // Unreadable — treat as absent.
+  // The installer's fixed locations, in case the registry key was lost.
+  const standard = [
+    path.join(process.env['ProgramFiles'] || 'C:\\Program Files', 'Runway', 'Runway.exe'),
+    path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Runway', 'Runway.exe'),
+  ];
+  for (const candidate of standard) {
+    try {
+      if (fs.existsSync(candidate)) return candidate;
+    } catch (e) {
+      // Unreadable — treat as absent.
+    }
   }
 
   return null;

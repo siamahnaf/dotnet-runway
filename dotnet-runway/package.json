@@ -2,7 +2,7 @@
   "name": "dotnet-runway",
   "displayName": "Dotnet Runway",
   "description": "Right-click a .NET project in the Explorer to run it in the Runway app. Navigation only — Runway itself manages the processes.",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "publisher": "Siam-Ahnaf",
   "author": {
     "name": "Siam Ahnaf",
