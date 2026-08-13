@@ -6,11 +6,11 @@
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>Runway</AssemblyName>
-    <RootNamespace>Runway</RootNamespace>
+    <AssemblyName>Dotswitch</AssemblyName>
+    <RootNamespace>Dotswitch</RootNamespace>
     <!-- Its own identity in the Windows taskbar rather than grouping under a host app. -->
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>runway.ico</ApplicationIcon>
+    <ApplicationIcon>dotswitch.ico</ApplicationIcon>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <!-- The WebView2 package ships a WPF assembly we never load; it drags in a
          WindowsBase it cannot reconcile with the WinForms one. Harmless here. -->
@@ -28,7 +28,7 @@
     </None>
     <!-- ApplicationIcon only embeds the icon in the exe; the window loads the
          file at runtime to get every size, so it has to be deployed too. -->
-    <None Update="runway.ico">
+    <None Update="dotswitch.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

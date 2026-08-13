@@ -1,13 +1,13 @@
 using System.Diagnostics;
 using System.Management;
 
-namespace Runway;
+namespace Dotswitch;
 
-/// <summary>One `dotnet watch` that Runway is not supervising.</summary>
+/// <summary>One `dotnet watch` that Dotswitch is not supervising.</summary>
 public sealed record StrayProcess(int Pid, string CommandLine, string Project);
 
 /// <summary>
-/// Finds `dotnet watch` processes that Runway did not start.
+/// Finds `dotnet watch` processes that Dotswitch did not start.
 ///
 /// They accumulate easily: a watch launched from a VS Code terminal, or one
 /// orphaned by a crash before the tree-kill on close existed. Each keeps its
@@ -17,9 +17,9 @@ public sealed record StrayProcess(int Pid, string CommandLine, string Project);
 public static class StrayProcesses
 {
     /// <summary>
-    /// Every `dotnet watch` on the machine except the trees Runway owns.
+    /// Every `dotnet watch` on the machine except the trees Dotswitch owns.
     ///
-    /// <paramref name="ownedRoots"/> are Runway's own watch PIDs; their whole
+    /// <paramref name="ownedRoots"/> are Dotswitch's own watch PIDs; their whole
     /// subtree is excluded, since `dotnet watch` spawns `dotnet run` which
     /// spawns the app.
     /// </summary>

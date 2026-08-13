@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace Runway;
+namespace Dotswitch;
 
 public enum RunStatus { Stopped, Starting, Building, Running, Stopping, Crashed }
 
@@ -245,12 +245,21 @@ public sealed class ProjectRunner : IDisposable
     /// compile, and a hard restart spends that time in `dotnet build` with no
     /// watch process at all — both have to be interruptible.
     /// </summary>
-    public void Stop(string id)
+    public void Stop(string id) => StopCore(id, userCancel: true);
+
+    /// <summary>
+    /// The stop a restart performs on its way to starting again.
+    ///
+    /// The distinction matters: <see cref="ProjectEntry.CancelRequested"/> is
+    /// how the user vetoes the start that follows, so a restart setting it on
+    /// its own behalf would veto itself.
+    /// </summary>
+    private void StopCore(string id, bool userCancel)
     {
         var e = Get(id);
         if (e is null) return;
 
-        e.CancelRequested = true;
+        if (userCancel) e.CancelRequested = true;
         ClearRudeTimer(e);
 
         var build = e.BuildProc;
@@ -275,10 +284,32 @@ public sealed class ProjectRunner : IDisposable
         if (proc is not null) KillTree(proc);
     }
 
+    /// <summary>
+    /// Settle a row whose restart the user interrupted part-way, and report
+    /// whether that happened.
+    /// </summary>
+    private bool WasCancelled(ProjectEntry e)
+    {
+        if (!e.CancelRequested) return false;
+        e.Status = RunStatus.Stopped;
+        e.LastEvent = "Cancelled";
+        Append(e, "\n--- cancelled ---\n");
+        Changed?.Invoke();
+        return true;
+    }
+
     public async Task RestartAsync(string id)
     {
-        Stop(id);
+        var e = Get(id);
+        if (e is null) return;
+
+        // Clear first, stop without cancelling: from here on the flag can only
+        // have been set by the user pressing stop mid-restart.
+        e.CancelRequested = false;
+        StopCore(id, userCancel: false);
         await WaitForExitAsync(id);
+        if (WasCancelled(e)) return;
+
         Start(id);
     }
 
@@ -291,8 +322,14 @@ public sealed class ProjectRunner : IDisposable
         var e = Get(id);
         if (e is null) return;
 
-        Stop(id);
+        // Same reason as RestartAsync, and this is where getting it wrong was
+        // visible: the old code stopped via Stop(), which set CancelRequested,
+        // so the check after the build was always true — it rebuilt correctly
+        // and then refused to start.
+        e.CancelRequested = false;
+        StopCore(id, userCancel: false);
         await WaitForExitAsync(id);
+        if (WasCancelled(e)) return;
 
         e.Status = RunStatus.Building;
         e.LastEvent = "Rebuilding";
@@ -342,14 +379,7 @@ public sealed class ProjectRunner : IDisposable
 
         // Cancelled while compiling: stop here rather than starting the app the
         // user just asked us not to.
-        if (e.CancelRequested)
-        {
-            e.Status = RunStatus.Stopped;
-            e.LastEvent = "Cancelled";
-            Append(e, "\n--- cancelled ---\n");
-            Changed?.Invoke();
-            return;
-        }
+        if (WasCancelled(e)) return;
 
         if (!ok)
         {
@@ -480,7 +510,7 @@ public sealed class ProjectRunner : IDisposable
             // If watch already handled it, the status will have moved on.
             if (e.Proc is null || e.Status != RunStatus.Running) return;
             e.AutoRestarts++;
-            Append(e, "\n--- Runway: hot reload could not apply that change, restarting ---\n");
+            Append(e, "\n--- Dotswitch: hot reload could not apply that change, restarting ---\n");
             _ = RestartAsync(e.Id);
         }, null, RudeEditGraceMs, Timeout.Infinite);
     }

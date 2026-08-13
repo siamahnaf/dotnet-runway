@@ -1,4 +1,4 @@
-# Dotnet Runway
+# Dotswitch
 
 Run .NET projects with `dotnet watch` and manage every one of them from a single
 panel inside VS Code — start, stop, restart, hard restart, switch launch
@@ -6,7 +6,7 @@ profile, and read live logs.
 
 ## The panel
 
-`Dotnet Runway: Open Runway` (or click the status bar item) opens the control
+`Dotswitch: Open Dotswitch` (or click the status bar item) opens the control
 board. By default it detaches into its own **small floating VS Code window**, so
 it can sit beside the editor without taking an editor slot.
 
@@ -40,19 +40,19 @@ apply — a *rude edit* — the running app keeps serving the **old** code.
 Three things guard against that, all of them inside this extension — you never
 have to change a line of your own project:
 
-1. **`--non-interactive` is on by default** (`dotnetRunway.nonInteractive`).
+1. **`--non-interactive` is on by default** (`dotswitch.nonInteractive`).
    Without it, watch stops on a rude edit and waits for a keypress. In a managed
    background process nothing will ever answer, so the edit silently never
    arrives. This is the single most common cause of "I changed the file and
    nothing happened".
-2. **Auto-restart on rude edits** (`dotnetRunway.autoRestartOnRudeEdit`). Runway
+2. **Auto-restart on rude edits** (`dotswitch.autoRestartOnRudeEdit`). Dotswitch
    reads watch's output, and when it sees that a change could not be applied it
    restarts the project. It allows a few seconds first, so if watch handles it
    there is no double restart.
 3. **Hard restart** forces a real compile whenever you want certainty.
 
 > A common suggestion for Razor views is to add `AddRazorRuntimeCompilation()`
-> to your app's `Program.cs`. Runway deliberately does not require that: it
+> to your app's `Program.cs`. Dotswitch deliberately does not require that: it
 > would mean every project using this extension editing its own startup code,
 > and it would only ever help `.cshtml` files. Detecting the failure in the
 > tooling covers `.cs` rude edits too, and leaves your projects untouched.
@@ -61,7 +61,7 @@ have to change a line of your own project:
 
 Right-click any folder or `.csproj` → **Run** → *Run with https* / *Run with
 http*. The project starts under the panel by default; set
-`dotnetRunway.runIn` to `windowsTerminal` or `vscodeTerminal` for the old
+`dotswitch.runIn` to `windowsTerminal` or `vscodeTerminal` for the old
 console behaviour (those are not manageable from the panel, since the process
 belongs to the terminal).
 
@@ -69,13 +69,13 @@ belongs to the terminal).
 
 | Setting | Default | Purpose |
 | --- | --- | --- |
-| `dotnetRunway.runIn` | `panel` | Where right-click launches go |
-| `dotnetRunway.floatingWindow` | `true` | Open in a floating VS Code window |
-| `dotnetRunway.nonInteractive` | `true` | Pass `--non-interactive` to watch |
-| `dotnetRunway.autoRestartOnRudeEdit` | `true` | Restart when hot reload cannot apply a change |
-| `dotnetRunway.autoOpenPanel` | `true` | Show the panel when a project starts |
-| `dotnetRunway.stripPrefix` | `Propsys.` | Trimmed from displayed project names |
-| `dotnetRunway.logBufferLines` | `4000` | Log lines kept per project |
+| `dotswitch.runIn` | `panel` | Where right-click launches go |
+| `dotswitch.floatingWindow` | `true` | Open in a floating VS Code window |
+| `dotswitch.nonInteractive` | `true` | Pass `--non-interactive` to watch |
+| `dotswitch.autoRestartOnRudeEdit` | `true` | Restart when hot reload cannot apply a change |
+| `dotswitch.autoOpenPanel` | `true` | Show the panel when a project starts |
+| `dotswitch.stripPrefix` | `Propsys.` | Trimmed from displayed project names |
+| `dotswitch.logBufferLines` | `4000` | Log lines kept per project |
 
 ## Building a new version
 
@@ -88,12 +88,12 @@ node build.js 2.0.0  # exact version
 ```
 
 The `.vsix` is written to the parent `VS Code Extensions` folder, named
-`dotnet-runway-<version>.vsix`.
+`dotswitch-<version>.vsix`.
 
 ## Installing
 
 ```
-code --install-extension "dotnet-runway-1.3.0.vsix"
+code --install-extension "dotswitch-1.3.0.vsix"
 ```
 
 Or in VS Code: Extensions → `...` → **Install from VSIX**.

@@ -1,4 +1,4 @@
-# Runway
+# Dotswitch
 
 Run and manage .NET projects with `dotnet watch` from a small always-available
 window, instead of a pile of terminal tabs.
@@ -7,8 +7,8 @@ Two pieces, and they do very different amounts of work:
 
 | | What it is | What it does |
 | --- | --- | --- |
-| **Runway.App** | A standalone Windows app | Everything — the window, the processes, the list, the logs |
-| **dotnet-runway** | A VS Code extension | Navigation only: adds *right-click → Run* and keeps the app matched to your VS Code theme |
+| **Dotswitch.App** | A standalone Windows app | Everything — the window, the processes, the list, the logs |
+| **dotswitch** | A VS Code extension | Navigation only: adds *right-click → Run* and keeps the app matched to your VS Code theme |
 
 The extension is optional. The app has an **+** button that adds a project from
 a file picker, so it works on its own.
@@ -33,28 +33,35 @@ menu. Neither half can do the other's job.
 **1. The app** — run the installer:
 
 ```
-Runway-1.0.2.msi
+Dotswitch-1.1.0.msi
 ```
 
-Installs to `C:\Program Files\Runway`, adds a Start-menu entry, and appears in
+Installs to `C:\Program Files\Dotswitch`, adds a Start-menu entry, and appears in
 **Apps & Features** for a clean uninstall. The fixed path is deliberate: the
-installer records it in `HKLM\SOFTWARE\Runway`, which is how the extension finds
+installer records it in `HKLM\SOFTWARE\Dotswitch`, which is how the extension finds
 the app.
+
+> **Upgrading from Runway?** Nothing to uninstall first. This MSI carries
+> Runway's upgrade code, so it removes the old install, its Start-menu entry and
+> `C:\Program Files\Runway` on its way in, and the app copies your project list
+> and window position from `%APPDATA%\Runway\` the first time it starts. The old
+> extension is a separate marketplace entry and does have to go by hand.
 
 **2. The extension** (optional):
 
 ```
-code --install-extension "dotnet-runway-3.2.2.vsix"
+code --install-extension "dotswitch-3.2.6.vsix"
 ```
 
-Or in VS Code: Extensions → `...` → **Install from VSIX**.
+Or in VS Code: Extensions → `...` → **Install from VSIX**. Uninstall the old
+**Dotnet Runway** extension if you have it, or both right-click entries appear.
 
-If you run a project before installing the app, the extension tells you Runway
+If you run a project before installing the app, the extension tells you Dotswitch
 is not installed.
 
 ### Uninstall
 
-Settings → Apps → **Runway** → Uninstall. Per-user state in `%APPDATA%\Runway\`
+Settings → Apps → **Dotswitch** → Uninstall. Per-user state in `%APPDATA%\Dotswitch\`
 is left behind deliberately (your project list and window position); delete that
 folder to remove every trace.
 
@@ -71,7 +78,7 @@ Right-click a project or folder in VS Code → **Run** → *Run with https* /
 *Run with http*. The extension runs:
 
 ```
-Runway.exe --run <path-to.csproj> --profile https
+Dotswitch.exe --run <path-to.csproj> --profile https
 ```
 
 The app is single-instance: a second launch forwards its arguments to the open
@@ -104,44 +111,61 @@ projects:
 
 1. `--non-interactive` is always passed, so watch cannot stop and wait for a
    keypress that a background process will never send.
-2. Runway watches for the rude-edit message and restarts the project itself,
+2. Dotswitch watches for the rude-edit message and restarts the project itself,
    after a short grace period in case watch recovers on its own.
 3. Hard restart forces a real compile when you want certainty.
 
 > A common suggestion for Razor views is to add `AddRazorRuntimeCompilation()`
-> to `Program.cs`. Runway deliberately does not require that — it would mean
+> to `Program.cs`. Dotswitch deliberately does not require that — it would mean
 > every project editing its own startup code, and it only ever helps `.cshtml`.
 > Detecting the failure in the tooling covers `.cs` rude edits too.
 
 ## Theming
 
-The extension resolves your active VS Code theme — including
-`workbench.colorCustomizations` — and writes it to
-`%APPDATA%\Runway\theme.json`. The app watches that file, so switching theme in
-VS Code repaints the window live.
+The window is Dotswitch's own: two brand colours, `#FF405C` and `#E82968`, and
+their shades, on either a white or a black ground.
 
-Only a dozen real colours cross over; surface shades, muted text and status
-tints are derived from them, so any theme works. Background brightness is
-measured, so light themes get dark overlays rather than washed-out light ones.
+Which ground follows **Windows** by default. The theme button in the title bar
+cycles *follow Windows → light → dark* and the choice is remembered; while it is
+following, changing the Windows setting repaints the window live rather than at
+the next launch.
 
-Without the extension the app keeps its own dark palette.
+On dark, a faint brand glow sits over the black from the top-left corner and
+falls away across the window; the cards are semi-transparent, so the rows nearest
+the corner pick it up and the list gains depth. Light stays flat white — a wash
+on a light ground reads as a stain rather than as light.
+
+One colour is admitted from outside the brand: an emerald green, and only ever
+to say *this project is up*. It appears in five places, all of them on a running
+card — the row tint, the full-height rail down its left edge, the status dot, the
+URL, and the dot in its profile pill. Not on the start button, not on the running
+count; letting it leak into the controls would cost it the meaning it carries.
+Failure keeps the deeper brand shade, and the dot changes shape as well as
+colour — solid when running, a hollow ring when crashed — so the two are never
+told apart by hue alone.
+
+The extension still exports your VS Code theme to
+`%APPDATA%\Dotswitch\theme.json`, and the app still watches that file, but only
+the log drawer uses it now: output is coloured with your integrated terminal's
+own ANSI palette. The rest of the window deliberately does not follow the
+editor.
 
 ## Configuration
 
 | Setting | Purpose |
 | --- | --- |
-| `dotnetRunway.appPath` | Full path to `Runway.exe`. Leave empty to resolve it automatically |
+| `dotswitch.appPath` | Full path to `Dotswitch.exe`. Leave empty to resolve it automatically |
 
 The extension looks for the app in this order: the setting above, the registry
-key the installer writes (`HKLM\SOFTWARE\Runway\ExePath`), then
-`C:\Program Files\Runway`. If none match it prompts to install rather than
+key the installer writes (`HKLM\SOFTWARE\Dotswitch\ExePath`), then
+`C:\Program Files\Dotswitch`. If none match it prompts to install rather than
 falling back to anything — a fallback would hide the fact that the app was
 never installed.
 
-Working on the app itself? Point `dotnetRunway.appPath` at your
-`Runway.App\dist\Runway.exe` and the extension uses that instead.
+Working on the app itself? Point `dotswitch.appPath` at your
+`Dotswitch.App\dist\Dotswitch.exe` and the extension uses that instead.
 
-App state lives in `%APPDATA%\Runway\`: `state.json` (projects, order, window
+App state lives in `%APPDATA%\Dotswitch\`: `state.json` (projects, order, window
 geometry), `theme.json`, and `error.log` if anything ever crashes.
 
 ## Building
@@ -154,14 +178,14 @@ Everything at once:
 ```
 
 That publishes the app, builds the MSI, and packages the extension, leaving
-`Runway-<version>.msi` and `dotnet-runway-<version>.vsix` in this folder.
+`Dotswitch-<version>.msi` and `dotswitch-<version>.vsix` in this folder.
 
 Individually:
 
 ```bash
-cd Runway.App       && dotnet publish -c Release -o dist
-cd Runway.Installer && wix build Runway.wxs -arch x64 -o ../Runway-1.0.2.msi
-cd dotnet-runway    && npm install && npm run package
+cd Dotswitch.App       && dotnet publish -c Release -o dist
+cd Dotswitch.Installer && wix build Dotswitch.wxs -arch x64 -o ../Dotswitch-1.1.0.msi
+cd dotswitch    && npm install && npm run package
 ```
 
 The installer needs the WiX tool once:
@@ -170,28 +194,30 @@ The installer needs the WiX tool once:
 dotnet tool install --global wix
 ```
 
-The app's version lives in `Runway.Installer/Runway.wxs`; bump it there.
+The app's version lives in `Dotswitch.Installer/Dotswitch.wxs`; bump it there.
 
 ## Layout
 
 ```
 VS Code Extensions/
-├── Runway.App/            the standalone window
+├── Dotswitch.App/           the standalone window
 │   ├── Program.cs           entry, single instance, taskbar identity, pipe server
-│   ├── MainForm.cs          frameless window, WebView2 host, message bridge
+│   ├── MainForm.cs          frameless window, WebView2 host, light/dark, bridge
 │   ├── ProjectRunner.cs     process management and output parsing
-│   ├── AppState.cs          project list, ordering, window geometry
+│   ├── AppState.cs          project list, ordering, window geometry, theme
 │   ├── LaunchProfiles.cs    reads launchSettings.json
+│   ├── dotswitch.ico        every size the shell asks for, built from the logo
 │   ├── wwwroot/             the UI
 │   └── dist/                build output (git-ignored; the MSI ships instead)
-├── Runway.Installer/      WiX installer definition
-│   └── Runway.wxs           fixed install path, registry key, Start-menu entry
-├── dotnet-runway/         the VS Code extension
+├── Dotswitch.Installer/     WiX installer definition
+│   └── Dotswitch.wxs        fixed install path, registry key, Start-menu entry
+├── dotswitch/               the VS Code extension
 │   ├── extension.js         right-click menu, launches the app, exports the theme
 │   └── src/
 │       ├── projects.js      project discovery and launch profiles
 │       └── theme.js         resolves the VS Code theme to a palette
-├── build.ps1              builds app + installer + extension
-├── Runway-1.0.2.msi       ← install this
-└── dotnet-runway-3.2.2.vsix
+├── dotswitch.png            the logo, source for both icons
+├── build.ps1                builds app + installer + extension
+├── Dotswitch-1.1.0.msi      ← install this
+└── dotswitch-3.2.6.vsix
 ```

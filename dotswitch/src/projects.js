@@ -80,7 +80,7 @@ async function hasProfile(csprojUri, profile) {
  */
 function displayName(csprojUri) {
   const base = path.basename(csprojUri.fsPath, '.csproj');
-  const prefix = vscode.workspace.getConfiguration('dotnetRunway').get('stripPrefix', '');
+  const prefix = vscode.workspace.getConfiguration('dotswitch').get('stripPrefix', '');
   if (prefix && base.startsWith(prefix) && base.length > prefix.length) {
     return base.slice(prefix.length);
   }

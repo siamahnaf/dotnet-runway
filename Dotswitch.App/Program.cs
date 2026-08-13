@@ -2,12 +2,12 @@ using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Runway;
+namespace Dotswitch;
 
 internal static class Program
 {
-    private const string MutexName = "Propsys.Runway.SingleInstance";
-    internal const string PipeName = "Propsys.Runway.Pipe";
+    private const string MutexName = "Propsys.Dotswitch.SingleInstance";
+    internal const string PipeName = "Propsys.Dotswitch.Pipe";
 
     /// <summary>
     /// Gives the process its own identity in the Windows shell. Without it a
@@ -23,7 +23,7 @@ internal static class Program
     {
         try
         {
-            SetCurrentProcessExplicitAppUserModelID("Propsys.Runway");
+            SetCurrentProcessExplicitAppUserModelID("Propsys.Dotswitch");
         }
         catch
         {
@@ -72,7 +72,7 @@ internal static class Program
         try
         {
             var dir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Runway");
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Dotswitch");
             Directory.CreateDirectory(dir);
             File.AppendAllText(
                 Path.Combine(dir, "error.log"),
@@ -138,7 +138,7 @@ internal static class Program
         })
         {
             IsBackground = true,
-            Name = "runway-pipe",
+            Name = "dotswitch-pipe",
         };
         thread.Start();
     }

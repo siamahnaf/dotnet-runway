@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
-  <assemblyIdentity version="1.0.0.0" name="Propsys.Runway" />
+  <assemblyIdentity version="1.0.0.0" name="Propsys.Dotswitch" />
   <application xmlns="urn:schemas-microsoft-com:asm.v3">
     <windowsSettings>
       <!-- Crisp UI on scaled displays; WebView2 renders per-monitor aware. -->

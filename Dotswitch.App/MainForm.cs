@@ -3,7 +3,7 @@ using System.Text.Json;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
-namespace Runway;
+namespace Dotswitch;
 
 /// <summary>
 /// The window. Frameless by design: the title bar, minimise and close are drawn
@@ -30,6 +30,21 @@ public sealed class MainForm : Form
     private const int DwmwcpRound = 2;
     private const uint DwmwaColorNone = 0xFFFFFFFE;
 
+    // Dark mode moved attribute number between Windows 10 builds; try the
+    // current one and fall back, since neither errors visibly.
+    private const int DwmwaUseImmersiveDarkMode = 20;
+    private const int DwmwaUseImmersiveDarkModeLegacy = 19;
+
+    /// <summary>Where Windows records the light/dark choice for apps.</summary>
+    private const string PersonalizeKey =
+        @"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize";
+
+    // The two window backgrounds, mirrored from app.css. They exist here only
+    // so the frame is already the right colour before WebView2 paints — a
+    // white flash on a dark theme is the most obvious way to look unfinished.
+    private static readonly Color DarkShell = Color.FromArgb(0x0B, 0x09, 0x0D);
+    private static readonly Color LightShell = Color.FromArgb(0xFF, 0xFF, 0xFF);
+
     [DllImport("user32.dll")]
     private static extern bool ReleaseCapture();
 
@@ -43,6 +58,9 @@ public sealed class MainForm : Form
     private readonly ProjectRunner _runner = new();
     private readonly AppState _state = AppState.Load();
     private bool _uiReady;
+
+    /// <summary>The theme actually in force, once the saved preference and the system have been reconciled.</summary>
+    private bool _dark = true;
 
     /// <summary>
     /// Keeping the frame but removing its decoration is what preserves the
@@ -80,6 +98,29 @@ public sealed class MainForm : Form
         {
             // Pre-Windows-11: the attributes do not exist and the defaults stand.
         }
+
+        ApplyWindowDarkMode();
+    }
+
+    /// <summary>
+    /// Tells DWM which way the window leans, so the drop shadow and any frame
+    /// Windows still draws match the palette inside.
+    /// </summary>
+    private void ApplyWindowDarkMode()
+    {
+        if (!IsHandleCreated) return;
+        var on = _dark ? 1 : 0;
+        try
+        {
+            if (DwmSetWindowAttribute(Handle, DwmwaUseImmersiveDarkMode, ref on, sizeof(int)) != 0)
+            {
+                DwmSetWindowAttribute(Handle, DwmwaUseImmersiveDarkModeLegacy, ref on, sizeof(int));
+            }
+        }
+        catch
+        {
+            // Older Windows: no immersive dark mode, nothing to fall back to.
+        }
     }
 
     protected override void WndProc(ref Message m)
@@ -102,13 +143,15 @@ public sealed class MainForm : Form
     public MainForm(string[]? args = null)
     {
         _pendingArgs = args ?? Array.Empty<string>();
-        Text = "Runway";
+        _dark = ResolveDark(_state.Theme);
+
+        Text = "Dotswitch";
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;
         MinimumSize = new Size(360, 240);
-        // Matches the UI's own background so there is no white flash before
-        // WebView2 paints its first frame.
-        BackColor = Color.FromArgb(24, 26, 31);
+        // Matches the UI's own background so there is no flash of the wrong
+        // colour before WebView2 paints its first frame.
+        BackColor = _dark ? DarkShell : LightShell;
         ShowInTaskbar = true;
 
         LoadWindowIcon();
@@ -118,11 +161,15 @@ public sealed class MainForm : Form
         TopMost = _state.AlwaysOnTop;
 
         _web.Dock = DockStyle.Fill;
-        _web.DefaultBackgroundColor = Color.FromArgb(24, 26, 31);
+        _web.DefaultBackgroundColor = BackColor;
         Controls.Add(_web);
 
         _runner.Changed += OnRunnerChanged;
         _runner.Logged += OnRunnerLogged;
+
+        // Following Windows means noticing when Windows changes: the palette has
+        // to repaint under the user rather than at the next launch.
+        Microsoft.Win32.SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
 
         WatchTheme();
         Load += async (_, _) => await InitialiseWebViewAsync();
@@ -131,6 +178,63 @@ public sealed class MainForm : Form
         Move += (_, _) => PersistBounds();
     }
 
+    // ── Light / dark ──────────────────────────────────────
+
+    /// <summary>Reads the Windows "choose your mode" setting for apps.</summary>
+    private static bool SystemPrefersDark()
+    {
+        try
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(PersonalizeKey);
+            // Absent on some installs, in which case Windows itself defaults to light.
+            return key?.GetValue("AppsUseLightTheme") is int light && light == 0;
+        }
+        catch
+        {
+            return true;   // unreadable: the app's own default is the dark one
+        }
+    }
+
+    private static bool ResolveDark(string? mode) => mode switch
+    {
+        "light" => false,
+        "dark" => true,
+        _ => SystemPrefersDark(),
+    };
+
+    private void OnUserPreferenceChanged(object? sender, Microsoft.Win32.UserPreferenceChangedEventArgs e)
+    {
+        // General is the category Windows raises for a light/dark switch. It
+        // arrives on a system thread, and touching the form needs the UI one.
+        if (e.Category != Microsoft.Win32.UserPreferenceCategory.General) return;
+        if (IsDisposed || !IsHandleCreated) return;
+        try { BeginInvoke(() => ApplyAppearance()); } catch { }
+    }
+
+    /// <summary>
+    /// Reconcile the saved preference with the system, then repaint both halves
+    /// of the window — the WinForms shell and the HTML inside it.
+    /// </summary>
+    private void ApplyAppearance()
+    {
+        _dark = ResolveDark(_state.Theme);
+
+        var shell = _dark ? DarkShell : LightShell;
+        BackColor = shell;
+        if (!_web.IsDisposed) _web.DefaultBackgroundColor = shell;
+
+        ApplyWindowDarkMode();
+        PushAppearance();
+    }
+
+    private void PushAppearance() =>
+        Post(JsonSerializer.Serialize(new
+        {
+            type = "appearance",
+            mode = string.IsNullOrEmpty(_state.Theme) ? "system" : _state.Theme,
+            dark = _dark,
+        }));
+
     /// <summary>
     /// Prefer the .ico file, which carries every size Windows wants for the
     /// taskbar, Alt-Tab and the title bar. If it is missing, fall back to the
@@ -138,7 +242,7 @@ public sealed class MainForm : Form
     /// </summary>
     private void LoadWindowIcon()
     {
-        var file = Path.Combine(AppContext.BaseDirectory, "runway.ico");
+        var file = Path.Combine(AppContext.BaseDirectory, "dotswitch.ico");
         try
         {
             if (File.Exists(file))
@@ -217,7 +321,7 @@ public sealed class MainForm : Form
         // Serve wwwroot over a virtual host: file:// would put us in an opaque
         // origin, where fetch and modern CSS features behave inconsistently.
         core.SetVirtualHostNameToFolderMapping(
-            "runway.local",
+            "dotswitch.local",
             Path.Combine(AppContext.BaseDirectory, "wwwroot"),
             CoreWebView2HostResourceAccessKind.Allow);
 
@@ -230,7 +334,7 @@ public sealed class MainForm : Form
             OpenExternal(e.Uri);
         };
 
-        core.Navigate("https://runway.local/index.html");
+        core.Navigate("https://dotswitch.local/index.html");
     }
 
     private void OnWebMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
@@ -253,6 +357,7 @@ public sealed class MainForm : Form
                 LoadProjects();
                 PushState();
                 PushChrome();
+                PushAppearance();
                 PushTheme();
 
                 // Deferred until now so a project asked for on the command line
@@ -381,6 +486,20 @@ public sealed class MainForm : Form
                 KillStrayWatchers();
                 break;
 
+            case "openLink":
+                {
+                    var url = msg.TryGetProperty("url", out var u) ? u.GetString() : null;
+                    // Only http(s), so a crafted message cannot launch a local
+                    // program through the shell.
+                    if (url is not null &&
+                        (url.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+                         url.StartsWith("http://", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        OpenExternal(url);
+                    }
+                    break;
+                }
+
             case "minimise":
                 WindowState = FormWindowState.Minimized;
                 break;
@@ -395,6 +514,17 @@ public sealed class MainForm : Form
                 TopMost = _state.AlwaysOnTop;
                 PushChrome();
                 break;
+
+            case "setTheme":
+                {
+                    var mode = msg.TryGetProperty("mode", out var md) ? md.GetString() : null;
+                    // Anything unrecognised means follow Windows, which is also
+                    // the state the cycle returns to.
+                    _state.Theme = mode is "light" or "dark" ? mode : "system";
+                    _state.Save();
+                    ApplyAppearance();
+                    break;
+                }
         }
     }
 
@@ -437,9 +567,11 @@ public sealed class MainForm : Form
         Post(JsonSerializer.Serialize(new { type = "chrome", pinned = _state.AlwaysOnTop }));
 
     /// <summary>
-    /// Hand the UI whatever palette the VS Code extension last exported, so the
-    /// window matches the editor's theme. Absent the file, the built-in palette
-    /// stands and the window still looks finished.
+    /// Hand the UI whatever palette the VS Code extension last exported.
+    ///
+    /// The window's own chrome is Dotswitch's palette now and does not follow
+    /// the editor, but the log drawer still takes its ANSI colours from here so
+    /// output looks the way it does in your integrated terminal.
     /// </summary>
     private void PushTheme()
     {
@@ -608,7 +740,7 @@ public sealed class MainForm : Form
     }
 
     /// <summary>
-    /// Find and offer to kill `dotnet watch` processes Runway did not start —
+    /// Find and offer to kill `dotnet watch` processes Dotswitch did not start —
     /// left behind by a VS Code terminal, or orphaned by an earlier crash.
     /// They hold their ports, which makes the next start of that project fail
     /// for reasons nothing in this window explains.
@@ -625,8 +757,8 @@ public sealed class MainForm : Form
         if (strays.Count == 0)
         {
             MessageBox.Show(this,
-                "No stray dotnet watch processes found.\n\nEverything running is managed by Runway.",
-                "Runway", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                "No stray dotnet watch processes found.\n\nEverything running is managed by Dotswitch.",
+                "Dotswitch", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
 
@@ -634,7 +766,7 @@ public sealed class MainForm : Form
         if (strays.Count > 15) list += $"\n    ...and {strays.Count - 15} more";
 
         var answer = MessageBox.Show(this,
-            $"Found {strays.Count} dotnet watch process(es) not managed by Runway:\n\n{list}\n\n" +
+            $"Found {strays.Count} dotnet watch process(es) not managed by Dotswitch:\n\n{list}\n\n" +
             "Terminate them and everything they started?",
             "Terminate stray processes",
             MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2);
@@ -644,7 +776,7 @@ public sealed class MainForm : Form
         var killed = StrayProcesses.Kill(strays);
         MessageBox.Show(this,
             $"Terminated {killed} of {strays.Count}.",
-            "Runway", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            "Dotswitch", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     /// <summary>
@@ -664,8 +796,7 @@ public sealed class MainForm : Form
         var live = _runner.All().Count(x => x.Proc is not null);
         if (live == 0)
         {
-            _themeWatcher?.Dispose();
-            _runner.Dispose();
+            ReleaseResources();
             return;
         }
 
@@ -682,8 +813,18 @@ public sealed class MainForm : Form
             // Whatever happens, the window must still close.
         }
 
+        ReleaseResources();
+        Close();
+    }
+
+    /// <summary>
+    /// SystemEvents keeps a static handler list, so an unhooked form would be
+    /// kept alive and then called after disposal.
+    /// </summary>
+    private void ReleaseResources()
+    {
+        try { Microsoft.Win32.SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged; } catch { }
         _themeWatcher?.Dispose();
         _runner.Dispose();
-        Close();
     }
 }

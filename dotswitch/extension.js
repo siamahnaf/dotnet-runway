@@ -7,10 +7,10 @@ const { findProjects, hasProfile, displayName, relativeLabel } = require('./src/
 const { buildPalette } = require('./src/theme');
 
 /**
- * Dotnet Runway — VS Code side.
+ * Dotswitch — VS Code side.
  *
  * Navigation only. This extension does not run or manage anything: it adds the
- * Explorer right-click entry, hands the chosen project to the standalone Runway
+ * Explorer right-click entry, hands the chosen project to the standalone Dotswitch
  * window, and keeps that window's palette in step with the active VS Code
  * theme. All process management lives in the app.
  */
@@ -18,7 +18,7 @@ const { buildPalette } = require('./src/theme');
 let context;
 
 function cfg() {
-  return vscode.workspace.getConfiguration('dotnetRunway');
+  return vscode.workspace.getConfiguration('dotswitch');
 }
 
 // ── Theme export ──────────────────────────────────────────
@@ -44,7 +44,7 @@ function exportTheme() {
     const appData = process.env.APPDATA;
     if (!appData) return;
 
-    const dir = path.join(appData, 'Runway');
+    const dir = path.join(appData, 'Dotswitch');
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, 'theme.json'), JSON.stringify(palette, null, 2));
   } catch (e) {
@@ -66,7 +66,7 @@ function installedPathFromRegistry() {
     try {
       const out = cp.execFileSync(
         'reg',
-        ['query', 'HKLM\\SOFTWARE\\Runway', '/v', 'ExePath', view],
+        ['query', 'HKLM\\SOFTWARE\\Dotswitch', '/v', 'ExePath', view],
         { encoding: 'utf8', timeout: 4000, windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] }
       );
       const match = out.match(/ExePath\s+REG_SZ\s+(.+)/i);
@@ -82,19 +82,19 @@ function installedPathFromRegistry() {
 }
 
 /**
- * Locate Runway.exe: an explicit override, then the installed copy.
+ * Locate Dotswitch.exe: an explicit override, then the installed copy.
  *
  * There is deliberately no fallback to a build folder. One used to exist and it
  * quietly hid the fact that the app was never installed — the extension worked
  * on the machine that built it and nowhere else, and the "not installed" prompt
- * could never appear. Developers point `dotnetRunway.appPath` at their build.
+ * could never appear. Developers point `dotswitch.appPath` at their build.
  */
 function resolveAppPath() {
   const configured = cfg().get('appPath', '');
   if (configured) {
     if (fs.existsSync(configured)) return configured;
     vscode.window.showWarningMessage(
-      `dotnetRunway.appPath points at a file that does not exist: ${configured}`
+      `dotswitch.appPath points at a file that does not exist: ${configured}`
     );
   }
 
@@ -103,8 +103,8 @@ function resolveAppPath() {
 
   // The installer's fixed locations, in case the registry key was lost.
   const standard = [
-    path.join(process.env['ProgramFiles'] || 'C:\\Program Files', 'Runway', 'Runway.exe'),
-    path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Runway', 'Runway.exe'),
+    path.join(process.env['ProgramFiles'] || 'C:\\Program Files', 'Dotswitch', 'Dotswitch.exe'),
+    path.join(process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)', 'Dotswitch', 'Dotswitch.exe'),
   ];
   for (const candidate of standard) {
     try {
@@ -117,9 +117,9 @@ function resolveAppPath() {
   return null;
 }
 
-/** Runway is missing. Say so; installing it is the user's call. */
+/** Dotswitch is missing. Say so; installing it is the user's call. */
 function promptToInstall() {
-  vscode.window.showWarningMessage('Runway is not installed. Install Runway to run projects.');
+  vscode.window.showWarningMessage('Dotswitch is not installed. Install Dotswitch to run projects.');
 }
 
 /**
@@ -144,7 +144,7 @@ function launchInApp(csprojUri, profile) {
     // Detached: the window must outlive this VS Code window.
     child.unref();
   } catch (e) {
-    vscode.window.showErrorMessage(`Could not launch Runway: ${e.message}`);
+    vscode.window.showErrorMessage(`Could not launch Dotswitch: ${e.message}`);
   }
 }
 
@@ -160,7 +160,7 @@ function openApp() {
     const child = cp.spawn(exe, [], { detached: true, stdio: 'ignore' });
     child.unref();
   } catch (e) {
-    vscode.window.showErrorMessage(`Could not launch Runway: ${e.message}`);
+    vscode.window.showErrorMessage(`Could not launch Dotswitch: ${e.message}`);
   }
 }
 
@@ -177,7 +177,7 @@ async function run(uri, profile) {
   let projects = isCsproj ? [uri] : await findProjects(uri, 3);
 
   if (projects.length === 0) {
-    vscode.window.showWarningMessage(`Runway: no .csproj found under ${relativeLabel(uri)}.`);
+    vscode.window.showWarningMessage(`Dotswitch: no .csproj found under ${relativeLabel(uri)}.`);
     return;
   }
 
@@ -219,16 +219,16 @@ async function refreshVisibility() {
     const hits = await vscode.workspace.findFiles('**/*.csproj', '**/{bin,obj,node_modules}/**', 1);
     active = hits.length > 0;
   }
-  await vscode.commands.executeCommand('setContext', 'dotnetRunway.active', active);
+  await vscode.commands.executeCommand('setContext', 'dotswitch.active', active);
 }
 
 function activate(ctx) {
   context = ctx;
 
   ctx.subscriptions.push(
-    vscode.commands.registerCommand('dotnetRunway.https', (uri) => run(uri, 'https')),
-    vscode.commands.registerCommand('dotnetRunway.http', (uri) => run(uri, 'http')),
-    vscode.commands.registerCommand('dotnetRunway.openApp', openApp),
+    vscode.commands.registerCommand('dotswitch.https', (uri) => run(uri, 'https')),
+    vscode.commands.registerCommand('dotswitch.http', (uri) => run(uri, 'http')),
+    vscode.commands.registerCommand('dotswitch.openApp', openApp),
     vscode.window.onDidChangeActiveColorTheme(exportTheme),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('workbench.colorTheme') ||

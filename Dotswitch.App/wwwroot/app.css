@@ -1,0 +1,1081 @@
+/* Dotswitch — standalone window.
+
+   Two brand colours and their shades, on white or on black. Light and dark are
+   the same design with the ground inverted, never a second stylesheet: every
+   colour below resolves through a token, and only the tokens change.
+
+   The brand owns the chrome and every accent; green is admitted for one job
+   only, "this is running", because that is the question the window exists to
+   answer. Failure keeps the deeper brand shade, and state is still carried by
+   form as well as hue — a running card has a solid dot, a crashed one a hollow
+   ring — so the two never rely on colour alone. */
+
+:root {
+  font-size: 16px;
+  color-scheme: light;
+
+  /* ── Brand ─────────────────────────────────────────────── */
+
+  --brand: #FF405C;
+  --brand-deep: #E82968;
+  --brand-lift: #FF6B80;      /* brand raised toward white, for dark grounds */
+  --brand-sink: #C71B54;      /* brand sunk toward black, for light grounds */
+  --brand-grad: linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%);
+
+  /* ── Shape ─────────────────────────────────────────────── */
+
+  --radius-xl: 20px;
+  --radius-lg: 16px;
+  --radius: 12px;
+  --radius-sm: 9px;
+
+  /* ── Motion ────────────────────────────────────────────── */
+  /* One easing curve for travel, one with overshoot for anything that should
+     feel physical when pressed. Consistency here is most of "polished". */
+
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --spring: cubic-bezier(0.34, 1.45, 0.64, 1);
+  --t-fast: 0.13s;
+  --t-mid: 0.22s;
+  --t-slow: 0.34s;
+
+  /* ── Success ───────────────────────────────────────────── */
+  /* The one hue outside the brand, and it appears in exactly three places, all
+     of them on a card that is actually up: the row's tint, its accent rail and
+     its status dot. Not on the start button, not on the running count — those
+     are controls and chrome, and letting green leak into them would cost it the
+     meaning it is here to carry. An emerald rather than a primary green, so it
+     sits beside rose without the two fighting. */
+
+  --go: #0B9A67;
+  --go-grad: linear-gradient(135deg, #12B67F 0%, #0B9A67 100%);
+
+  /* ── Light ground ──────────────────────────────────────── */
+
+  --bg: #FFFFFF;
+  --bg-bar: #FFFFFF;
+  /* No glow on white: a brand wash across a light ground reads as a stain
+     rather than as light. Light keeps its wash in the title bar only. */
+  --bg-glow: none;
+
+  --ink: #17121B;
+  --ink-dim: rgba(23, 18, 27, 0.6);
+  --ink-faint: rgba(23, 18, 27, 0.35);
+
+  /* Brand-tinted, not neutral grey: a resting row still belongs to the palette.
+     Slightly stronger than a straight port of the dark values, because a tint
+     this pale on white loses its edge and the cards stop reading as cards. */
+  --surface-1: rgba(232, 41, 104, 0.055);
+  --surface-2: rgba(232, 41, 104, 0.095);
+  --surface-3: rgba(232, 41, 104, 0.15);
+  --hairline: rgba(23, 18, 27, 0.09);
+
+  /* How strongly the brand washes across the title bar. White shows a tint far
+     more readily than black does, so light gets less of the strength. */
+  --wash-1: 14%;
+  --wash-2: 5%;
+
+  --tint-run: rgba(11, 154, 103, 0.08);
+  --tint-run-hi: rgba(11, 154, 103, 0.13);
+  --tint-fail: rgba(232, 41, 104, 0.1);
+  --tint-fail-hi: rgba(232, 41, 104, 0.15);
+  --tint-busy: rgba(255, 64, 92, 0.07);
+
+  --on-brand: #FFFFFF;
+  --brand-ink: var(--brand-sink);   /* brand used as text or a small glyph */
+
+  --menu-bg: rgba(255, 255, 255, 0.86);
+  --log-bg: #FDFAFB;
+  --veil: rgba(255, 255, 255, 0.84);
+
+  --shadow-1: 0 1px 2px rgba(20, 16, 24, 0.05), 0 3px 12px rgba(20, 16, 24, 0.06);
+  --shadow-2: 0 10px 34px rgba(20, 16, 24, 0.14);
+  --glow: 0 3px 16px rgba(255, 64, 92, 0.3);
+
+  /* ANSI, tuned for a near-white log ground. Overwritten by the VS Code
+     export when the extension is installed. */
+  --a0: #24292F;  --a1: #CF222E;  --a2: #116329;  --a3: #953800;
+  --a4: #0550AE;  --a5: #8250DF;  --a6: #1B7C83;  --a7: #6E7781;
+  --a8: #57606A;  --a9: #A40E26;  --a10: #1A7F37; --a11: #BC4C00;
+  --a12: #0969DA; --a13: #A475F9; --a14: #3192AA; --a15: #8C959F;
+}
+
+/* ── Dark ground ─────────────────────────────────────────── */
+/* Set as an attribute rather than a media query so the host's saved override
+   wins over the system, and so the values live in exactly one place. */
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Not pure black: a trace of the brand hue in the ground is what stops a
+     dark window reading as a hole punched in the desktop. */
+  --bg: #0B090D;
+  --bg-bar: #0B090D;
+
+  /* Neon black. Deliberately faint — roughly a third of the strength the title
+     bar carries, so the body reads as a shade lying over the black rather than
+     as a second wash competing with the header. The cards are semi-transparent,
+     so it is the rows nearest the corner picking up a little more of it that
+     gives the window its depth. */
+  --bg-glow:
+    radial-gradient(115% 85% at 0% 0%,
+      rgba(255, 64, 92, 0.075) 0%,
+      rgba(232, 41, 104, 0.036) 30%,
+      rgba(232, 41, 104, 0.013) 52%,
+      transparent 74%);
+
+  --ink: #F7F2F5;
+  --ink-dim: rgba(247, 242, 245, 0.6);
+  --ink-faint: rgba(247, 242, 245, 0.33);
+
+  --surface-1: rgba(255, 255, 255, 0.05);
+  --surface-2: rgba(255, 255, 255, 0.09);
+  --surface-3: rgba(255, 255, 255, 0.15);
+  --hairline: rgba(255, 255, 255, 0.1);
+
+  --wash-1: 13%;
+  --wash-2: 4.5%;
+
+  /* Lifted toward white: the same emerald that reads well on paper goes muddy
+     on black. */
+  --go: #34D399;
+  --go-grad: linear-gradient(135deg, #4ADE9B 0%, #10B981 100%);
+
+  --tint-run: rgba(52, 211, 153, 0.12);
+  --tint-run-hi: rgba(52, 211, 153, 0.18);
+  --tint-fail: rgba(232, 41, 104, 0.17);
+  --tint-fail-hi: rgba(232, 41, 104, 0.24);
+  --tint-busy: rgba(255, 64, 92, 0.12);
+
+  --on-brand: #FFFFFF;
+  --brand-ink: var(--brand-lift);
+
+  --menu-bg: rgba(30, 22, 30, 0.86);
+  --log-bg: #07060A;
+  --veil: rgba(11, 9, 13, 0.88);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.45), 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 12px 40px rgba(0, 0, 0, 0.6);
+  --glow: 0 3px 20px rgba(255, 64, 92, 0.42);
+
+  --a0: #3B4048;  --a1: #E06C75;  --a2: #98C379;  --a3: #D19A66;
+  --a4: #61AFEF;  --a5: #C678DD;  --a6: #56B6C2;  --a7: #ABB2BF;
+  --a8: #5C6370;  --a9: #FF7B86;  --a10: #B5E890; --a11: #FFD479;
+  --a12: #7CC7FF; --a13: #E39EF7; --a14: #7FDBE8; --a15: #FFFFFF;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.35;
+  color: var(--ink);
+  background-color: var(--bg);
+  background-image: var(--bg-glow);
+  background-repeat: no-repeat;
+  overflow: hidden;
+  /* Text selection in a control panel is only ever accidental. */
+  user-select: none;
+  cursor: default;
+  -webkit-font-smoothing: antialiased;
+  /* Crossing between light and dark should read as one movement, not a cut. */
+  transition: background var(--t-slow) var(--ease), color var(--t-slow) var(--ease);
+}
+
+.grow { flex: 1 1 auto; }
+
+/* ── Title bar ─────────────────────────────────────────── */
+
+.titlebar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 7px 0 13px;
+  flex: none;
+  /* Opaque, and with its own wash below: the header keeps the stronger corner
+     gradient it always had, and the body's fainter shade sits under it. */
+  background: var(--bg-bar);
+}
+
+/* A wash of the brand fading out across the bar, plus a hairline that is the
+   gradient itself rather than a grey rule. */
+.titlebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 190% at 0% 0%,
+      color-mix(in srgb, var(--brand) var(--wash-1), transparent) 0%,
+      color-mix(in srgb, var(--brand-deep) var(--wash-2), transparent) 45%,
+      transparent 78%);
+}
+
+.titlebar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--brand) 55%, transparent) 0%,
+    color-mix(in srgb, var(--brand-deep) 22%, transparent) 38%,
+    var(--hairline) 100%);
+}
+
+.titlebar > * { position: relative; z-index: 1; }
+
+.logo {
+  width: 21px;
+  height: 21px;
+  flex: none;
+  border-radius: 6px;
+  user-select: none;
+  -webkit-user-drag: none;
+  box-shadow: var(--glow);
+  transition: transform var(--t-mid) var(--spring);
+}
+
+.titlebar:hover .logo { transform: scale(1.06) rotate(-4deg); }
+
+.brand {
+  font-size: 0.9375rem;
+  font-weight: 650;
+  letter-spacing: -0.012em;
+}
+
+.count {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink-dim);
+  background: var(--surface-2);
+  transition: color var(--t-mid) var(--ease), background var(--t-mid) var(--ease),
+              box-shadow var(--t-mid) var(--ease);
+}
+
+/* Anything running is the one thing worth wearing the full brand. Green is
+   confined to the cards themselves — this is chrome, not a project. */
+.count.on {
+  color: var(--on-brand);
+  background: var(--brand-grad);
+  box-shadow: var(--glow);
+}
+
+/* Window buttons sit flush to the corner, Windows-style. */
+.wb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+  flex: none;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease),
+              transform var(--t-fast) var(--spring);
+}
+
+.wb:hover { background: var(--surface-2); color: var(--ink); }
+.wb:active { transform: scale(0.9); }
+
+.wb.danger:hover {
+  background: var(--brand-grad);
+  color: var(--on-brand);
+  box-shadow: var(--glow);
+}
+
+/* On, not important. A filled gradient here reads as the primary action in the
+   window, which a pin toggle and a theme override are emphatically not. */
+.wb.active {
+  color: var(--brand-ink);
+  background: color-mix(in srgb, var(--brand) 15%, transparent);
+}
+
+.wb.active:hover {
+  color: var(--brand-ink);
+  background: color-mix(in srgb, var(--brand) 24%, transparent);
+}
+
+.wb svg { width: 15px; height: 15px; display: block; }
+
+/* The theme control swaps its glyph; spin the outgoing one out. */
+#btnTheme svg { transition: transform var(--t-mid) var(--spring); }
+#btnTheme:hover svg { transform: rotate(18deg); }
+
+/* ── Toolbar ───────────────────────────────────────────── */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 13px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 2px 9px;
+  flex: none;
+}
+
+.search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  display: flex;
+  pointer-events: none;
+  color: var(--ink-faint);
+  transition: color var(--t-mid) var(--ease);
+}
+
+.search-icon svg { width: 14px; height: 14px; }
+
+.search:focus-within .search-icon { color: var(--brand); }
+
+.filter {
+  width: 150px;
+  padding: 8px 14px 8px 34px;
+  color: var(--ink);
+  background: var(--surface-1);
+  border: none;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  transition: width var(--t-mid) var(--ease), background var(--t-mid) var(--ease),
+              box-shadow var(--t-mid) var(--ease);
+  user-select: text;
+}
+
+.filter::placeholder { color: var(--ink-faint); }
+.filter::-webkit-search-cancel-button { display: none; }
+
+.filter:focus {
+  width: 208px;
+  background: var(--surface-2);
+  outline: none;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--brand) 55%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--brand) 15%, transparent);
+}
+
+/* ── Icon buttons ──────────────────────────────────────── */
+
+.ib {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+  flex: none;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease),
+              transform var(--t-fast) var(--spring), box-shadow var(--t-fast) var(--ease);
+}
+
+.ib:hover:not(:disabled) { background: var(--surface-2); color: var(--ink); }
+.ib:active:not(:disabled) { transform: scale(0.88); background: var(--surface-3); }
+.ib:disabled { opacity: 0.26; cursor: default; }
+.ib svg { width: 17px; height: 17px; display: block; }
+
+/* Start is the affirmative action, so it fills on hover — in the brand, not the
+   green. Green is reserved for the fact of a project being up; a control that
+   merely starts one is still just a control. */
+.ib.go:hover:not(:disabled) {
+  color: var(--on-brand);
+  background: var(--brand-grad);
+  box-shadow: var(--glow);
+}
+
+.ib.halt:hover:not(:disabled),
+.ib.soft-halt:hover:not(:disabled) {
+  color: var(--brand-ink);
+  background: color-mix(in srgb, var(--brand-deep) 14%, transparent);
+}
+
+.ib.bolt:hover:not(:disabled) {
+  color: var(--brand-ink);
+  background: color-mix(in srgb, var(--brand) 14%, transparent);
+}
+
+.ib.on { background: var(--surface-2); color: var(--ink); }
+.ib.ok { color: var(--brand); }
+
+.ib.spinning { color: var(--brand); opacity: 1; cursor: progress; }
+.ib.spinning svg { transform-origin: 50% 50%; animation: spin 0.75s linear infinite; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fade { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ib.spinning svg { animation: fade 1.2s ease-in-out infinite; }
+}
+
+/* ── List ──────────────────────────────────────────────── */
+
+.scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 14px;
+}
+
+.scroll::-webkit-scrollbar { width: 11px; }
+.scroll::-webkit-scrollbar-thumb {
+  background: var(--surface-2);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+.scroll::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--brand) 45%, transparent);
+  background-clip: content-box;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 4px 7px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* A short gradient rule trailing the label, instead of a full-width divider. */
+.section-head::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(90deg, var(--hairline), transparent 62%);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 10px 11px 14px;
+  margin-bottom: 7px;
+  border-radius: var(--radius-lg);
+
+  /* The state rail is a background image, not a pseudo-element. That is what
+     lets it run the card's full height: a background is clipped by the element's
+     own border-radius, so the bar follows the rounded corners exactly. An
+     absolutely positioned bar has its own box and would poke out past the 16px
+     curve at both ends, which is why the old one had to be inset and ended up
+     looking like a floating stub.
+
+     Width is carried by background-size so it can grow from nothing when a
+     project changes state, rather than appearing all at once. */
+  background-color: var(--surface-1);
+  background-image: var(--rail, none);
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: 0 100%;
+  transition: background-color var(--t-mid) var(--ease),
+              background-size var(--t-mid) var(--spring);
+}
+
+/* Colour only. A transform here would create a stacking context, which trapped
+   the open profile menu inside the hovered card and let the next card paint
+   straight over it — and the lift was restless to sit under anyway. */
+.card:hover { background-color: var(--surface-2); }
+
+/* Raise the whole card while its menu is open, so the menu clears the rows
+   below it in paint order rather than relying on source position. */
+.card.menu-open { z-index: 40; }
+
+.card.running,
+.card.crashed,
+.card.busy { background-size: 3px 100%; }
+
+.card.running {
+  --rail: var(--go-grad);
+  background-color: var(--tint-run);
+}
+.card.running:hover { background-color: var(--tint-run-hi); }
+
+.card.crashed {
+  --rail: linear-gradient(180deg, var(--brand-deep), var(--brand-deep));
+  background-color: var(--tint-fail);
+}
+.card.crashed:hover { background-color: var(--tint-fail-hi); }
+
+/* Working, not yet running: the brand rather than the green, so the green only
+   ever means the thing is actually up. */
+.card.busy {
+  --rail: var(--brand-grad);
+  background-color: var(--tint-busy);
+}
+
+/* Only cards that were not on screen a moment ago animate in — the list is
+   rebuilt on every status push, and replaying this each time would twitch. */
+.card.fresh { animation: cardIn 0.3s var(--ease) both; }
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card.fresh { animation: none; }
+}
+
+/* ── Drag to reorder ───────────────────────────────────── */
+
+.grip {
+  display: flex;
+  align-items: center;
+  flex: none;
+  width: 13px;
+  margin-left: -6px;
+  color: var(--ink-faint);
+  opacity: 0;
+  cursor: grab;
+  transition: opacity var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+
+.card:hover .grip { opacity: 1; }
+.grip:hover { color: var(--brand); }
+.grip:active { cursor: grabbing; }
+.grip svg { width: 13px; height: 13px; }
+
+/* The slot left behind while a card is lifted. The rail goes with it — the slot
+   is a hole, not a copy of the row. */
+.card.drag-source {
+  background-color: color-mix(in srgb, var(--brand) 6%, transparent);
+  background-size: 0 100%;
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--brand) 35%, transparent);
+  transform: none;
+}
+
+.card.drag-source > * { opacity: 0; }
+
+/* The lifted copy that follows the cursor. */
+.drag-overlay {
+  position: fixed;
+  z-index: 500;
+  left: 0;
+  top: 0;
+  margin: 0;
+  pointer-events: none;
+  cursor: grabbing;
+  transform-origin: center;
+  /* background-color only: the shorthand would wipe the state rail off the copy
+     being dragged. */
+  background-color: var(--bg);
+  box-shadow:
+    0 0 0 1.5px color-mix(in srgb, var(--brand) 42%, transparent),
+    var(--shadow-2);
+}
+
+.drag-overlay .grip { opacity: 1; }
+
+/* Suppress hover feedback everywhere else while a drag is in progress. */
+body.is-dragging { cursor: grabbing; }
+body.is-dragging .card:hover { background-color: var(--surface-1); }
+body.is-dragging .ib:hover { background: transparent; }
+
+/* ── Status dot ────────────────────────────────────────── */
+
+.dot {
+  position: relative;
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  transition: background var(--t-mid) var(--ease), box-shadow var(--t-mid) var(--ease);
+}
+
+.dot.running {
+  background: var(--go);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--go) 22%, transparent);
+}
+
+/* A ring where running is a disc — the shapes still differ, so the two states
+   are told apart at a glance even before the colours register. */
+.dot.crashed {
+  background: transparent;
+  box-shadow:
+    inset 0 0 0 2.5px var(--brand-deep),
+    0 0 0 4px color-mix(in srgb, var(--brand-deep) 18%, transparent);
+}
+
+.dot.starting,
+.dot.building,
+.dot.stopping {
+  background: var(--brand-lift);
+  animation: breathe 1.4s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 45%, transparent); }
+  50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--brand) 0%, transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) { .dot { animation: none !important; } }
+
+/* ── Card body ─────────────────────────────────────────── */
+
+.info { flex: 1 1 auto; min-width: 0; }
+
+.name {
+  font-size: 1rem;
+  font-weight: 560;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  margin-top: 3px;
+  font-size: 0.8125rem;
+  color: var(--ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta a {
+  color: var(--brand-ink);
+  font-weight: 550;
+  text-decoration: none;
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--t-fast) var(--ease);
+}
+
+.meta a:hover { border-bottom-color: currentColor; }
+
+/* On a live row everything that says "this is up" agrees: the tint, the rail,
+   the status dot, the URL you can click, and the protocol dot in the pill. */
+.card.running .meta a { color: var(--go); }
+
+.card.running .dd-btn.secure .dd-dot {
+  background: var(--go);
+  box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--go) 22%, transparent);
+}
+
+.sep { opacity: 0.4; margin: 0 5px; }
+
+.tag {
+  display: inline-block;
+  margin-left: 7px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--brand-ink);
+  background: color-mix(in srgb, var(--brand) 13%, transparent);
+}
+
+.ctrls { display: flex; align-items: center; gap: 2px; flex: none; }
+
+/* ── Profile dropdown ──────────────────────────────────── */
+
+.dd { position: relative; flex: none; margin-right: 6px; }
+
+/* An outlined chip rather than a filled lozenge: it sits next to five icon
+   buttons, and a solid block there competes with the controls it labels. */
+.dd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  max-width: 112px;
+  padding: 0 7px 0 9px;
+  color: var(--ink-dim);
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease),
+              box-shadow var(--t-fast) var(--ease), transform var(--t-fast) var(--spring);
+}
+
+.dd-btn:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 40%, transparent);
+}
+
+.dd-btn:active:not(:disabled) { transform: scale(0.95); }
+.dd-btn:disabled { opacity: 0.35; cursor: default; }
+
+/* Encrypted or not, told at a glance without spelling it out twice. */
+.dd-dot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  transition: background var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+}
+
+.dd-btn.secure .dd-dot {
+  background: var(--brand);
+  box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--brand) 22%, transparent);
+}
+
+.dd-val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.dd-chev {
+  display: flex;
+  margin-left: -1px;
+  opacity: 0.55;
+  transition: transform var(--t-mid) var(--spring), opacity var(--t-fast) var(--ease);
+}
+
+.dd-chev svg { width: 12px; height: 12px; }
+
+.dd.open .dd-btn {
+  color: var(--brand-ink);
+  background: color-mix(in srgb, var(--brand) 11%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 55%, transparent);
+}
+
+.dd.open .dd-chev { transform: rotate(180deg); opacity: 1; }
+
+.dd-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 7px);
+  right: 0;
+  min-width: 148px;
+  padding: 6px;
+  border-radius: var(--radius-lg);
+  background: var(--menu-bg);
+  backdrop-filter: blur(20px) saturate(170%);
+  box-shadow: 0 0 0 1px var(--hairline), var(--shadow-2);
+  transform-origin: top right;
+  animation: dropIn 0.2s var(--spring);
+}
+
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-7px) scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dd-menu { animation: none; }
+  .dd-chev { transition: none; }
+}
+
+/* The tick lives in a fixed left column so the labels line up whether or not a
+   row is the selected one — a check that pushes text sideways reads as jitter
+   when you arrow through the list. */
+.dd-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 11px 8px 9px;
+  color: var(--ink-dim);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 550;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+}
+
+.dd-item:hover { background: var(--surface-2); color: var(--ink); }
+
+.dd-tick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 14px;
+  color: var(--brand);
+  opacity: 0;
+  transition: opacity var(--t-fast) var(--ease);
+}
+
+.dd-tick svg { width: 13px; height: 13px; }
+
+.dd-item.sel { color: var(--ink); font-weight: 620; }
+.dd-item.sel .dd-tick { opacity: 1; }
+
+/* ── Log drawer ────────────────────────────────────────── */
+
+.logs {
+  margin: -3px 0 8px;
+  border-radius: var(--radius-lg);
+  background: var(--log-bg);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  overflow: hidden;
+}
+
+.logs.fresh { animation: drawerIn 0.26s var(--ease) both; }
+
+@keyframes drawerIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) { .logs.fresh { animation: none; } }
+
+.log-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 7px 5px 13px;
+  background: var(--surface-1);
+}
+
+.log-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* Compact variant for the buttons living inside the log bar. */
+.ib.sm { width: 26px; height: 24px; }
+.ib.sm svg { width: 14px; height: 14px; }
+
+.log-body {
+  max-height: 210px;
+  overflow: auto;
+  margin: 0;
+  padding: 11px 14px;
+  font-family: "Cascadia Mono", Consolas, ui-monospace, monospace;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--ink-dim);
+  user-select: text;
+  cursor: text;
+}
+
+.log-body::-webkit-scrollbar { width: 10px; }
+.log-body::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+/* ── ANSI colours ──────────────────────────────────────── */
+/* Values live with the palettes above, per theme; the VS Code export
+   overwrites them with that theme's integrated-terminal colours. */
+
+.a-f0  { color: var(--a0); }   .a-f1  { color: var(--a1); }
+.a-f2  { color: var(--a2); }   .a-f3  { color: var(--a3); }
+.a-f4  { color: var(--a4); }   .a-f5  { color: var(--a5); }
+.a-f6  { color: var(--a6); }   .a-f7  { color: var(--a7); }
+.a-f8  { color: var(--a8); }   .a-f9  { color: var(--a9); }
+.a-f10 { color: var(--a10); }  .a-f11 { color: var(--a11); }
+.a-f12 { color: var(--a12); }  .a-f13 { color: var(--a13); }
+.a-f14 { color: var(--a14); }  .a-f15 { color: var(--a15); }
+
+.a-bg0  { background: var(--a0); }   .a-bg1  { background: var(--a1); }
+.a-bg2  { background: var(--a2); }   .a-bg3  { background: var(--a3); }
+.a-bg4  { background: var(--a4); }   .a-bg5  { background: var(--a5); }
+.a-bg6  { background: var(--a6); }   .a-bg7  { background: var(--a7); }
+.a-bg8  { background: var(--a8); }   .a-bg9  { background: var(--a9); }
+.a-bg10 { background: var(--a10); }  .a-bg11 { background: var(--a11); }
+.a-bg12 { background: var(--a12); }  .a-bg13 { background: var(--a13); }
+.a-bg14 { background: var(--a14); }  .a-bg15 { background: var(--a15); }
+
+.a-b   { font-weight: 700; }
+.a-dim { opacity: 0.65; }
+.a-i   { font-style: italic; }
+.a-u   { text-decoration: underline; }
+
+/* ── Resize grips ──────────────────────────────────────── */
+/* The window keeps its sizing frame but reserves no visible space for it, so
+   Windows never reports a border hit. These strips supply that instead. */
+
+.rz { position: fixed; z-index: 90; }
+
+.rz.n { top: 0; left: 6px; right: 6px; height: 5px; cursor: ns-resize; }
+.rz.s { bottom: 0; left: 6px; right: 6px; height: 5px; cursor: ns-resize; }
+.rz.w { left: 0; top: 6px; bottom: 6px; width: 5px; cursor: ew-resize; }
+.rz.e { right: 0; top: 6px; bottom: 6px; width: 5px; cursor: ew-resize; }
+
+.rz.nw { top: 0; left: 0; width: 8px; height: 8px; cursor: nwse-resize; }
+.rz.se { bottom: 0; right: 0; width: 8px; height: 8px; cursor: nwse-resize; }
+.rz.ne { top: 0; right: 0; width: 8px; height: 8px; cursor: nesw-resize; }
+.rz.sw { bottom: 0; left: 0; width: 8px; height: 8px; cursor: nesw-resize; }
+
+/* ── Shutdown veil ─────────────────────────────────────── */
+
+.veil {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: var(--veil);
+  backdrop-filter: blur(6px);
+  animation: veilIn 0.24s var(--ease);
+}
+
+@keyframes veilIn { from { opacity: 0; } to { opacity: 1; } }
+
+.veil[hidden] { display: none; }
+
+.veil-spin {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2.5px solid var(--surface-3);
+  border-top-color: var(--brand);
+  border-right-color: var(--brand-deep);
+  animation: spin 0.75s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .veil-spin { animation: fade 1.2s ease-in-out infinite; }
+  .veil { animation: none; }
+}
+
+.veil-text {
+  font-size: 0.875rem;
+  color: var(--ink-dim);
+}
+
+/* ── Tooltip ───────────────────────────────────────────── */
+
+.tip {
+  position: fixed;
+  z-index: 600;
+  /* Never wider than the window it floats in, whatever it is describing. */
+  max-width: min(300px, calc(100vw - 24px));
+  padding: 7px 11px;
+  border-radius: var(--radius-sm);
+  background: var(--menu-bg);
+  backdrop-filter: blur(18px) saturate(160%);
+  color: var(--ink);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  text-align: left;
+  /* Wrapping, not nowrap: nowrap cannot honour a max-width, so a long project
+     path grew the box past the clamp and spilled across the card behind it.
+     `anywhere` because a Windows path has no spaces to break at. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-4px) scale(0.95);
+  transition: opacity var(--t-fast) var(--ease), transform var(--t-fast) var(--spring);
+  box-shadow: 0 0 0 1px var(--hairline), var(--shadow-2);
+}
+
+.tip.on { opacity: 1; transform: none; }
+
+/* Laid out but invisible, so its size can be measured before placing it. */
+.tip.measuring { opacity: 0; transition: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tip { transition: opacity var(--t-fast) ease; transform: none; }
+  .tip.on { transform: none; }
+}
+
+/* ── Credit ────────────────────────────────────────────── */
+
+.credit {
+  flex: none;
+  padding: 9px 4px 13px;
+  text-align: center;
+  font-size: 0.6875rem;
+  color: var(--ink-faint);
+}
+
+.credit a {
+  color: var(--brand-ink);
+  font-weight: 550;
+  text-decoration: none;
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--t-fast) var(--ease);
+}
+
+.credit a:hover { border-bottom-color: currentColor; }
+
+/* ── Empty state ───────────────────────────────────────── */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 16px;
+  padding: 34px 24px 32px;
+  border-radius: var(--radius-xl);
+  background: var(--surface-1);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--ink-dim);
+  animation: cardIn 0.34s var(--ease) both;
+}
+
+.empty[hidden] { display: none; }
+
+.empty-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius);
+  color: var(--on-brand);
+  background: var(--brand-grad);
+  box-shadow: var(--glow);
+}
+
+.empty-mark svg { width: 24px; height: 24px; }
+
+.empty strong { color: var(--ink); font-weight: 620; font-size: 0.9375rem; }
+.empty p { margin: 0; max-width: 30ch; line-height: 1.7; }
+.empty b { color: var(--ink); font-weight: 620; }
+
+@media (prefers-reduced-motion: reduce) { .empty { animation: none; } }

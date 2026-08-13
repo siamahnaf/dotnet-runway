@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Runway;
+namespace Dotswitch;
 
 /// <summary>
 /// Reads Properties/launchSettings.json next to a .csproj.

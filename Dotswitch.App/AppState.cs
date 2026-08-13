@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Runway;
+namespace Dotswitch;
 
 /// <summary>A project the user has added, in the order they arranged it.</summary>
 public sealed class SavedProject
@@ -28,14 +28,54 @@ public sealed class AppState
     public int WindowHeight { get; set; } = 560;
     public bool AlwaysOnTop { get; set; }
 
+    /// <summary>
+    /// "system", "light" or "dark". Defaults to following Windows, which is
+    /// what most people never have to think about again.
+    /// </summary>
+    public string Theme { get; set; } = "system";
+
     [JsonIgnore]
     public static string Dir =>
         Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "Runway");
+            "Dotswitch");
 
     [JsonIgnore]
     public static string FilePath => Path.Combine(Dir, "state.json");
+
+    /// <summary>Where this app kept its state before it was called Dotswitch.</summary>
+    [JsonIgnore]
+    private static string LegacyDir =>
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "Runway");
+
+    /// <summary>
+    /// Carry a Runway install's state across on first run.
+    ///
+    /// The rename moved the folder out from under existing users, who would
+    /// otherwise open the new build to an empty list and a window back at its
+    /// default size. Copied rather than moved, so a downgrade still works.
+    /// </summary>
+    private static void MigrateLegacyState()
+    {
+        try
+        {
+            if (File.Exists(FilePath) || !Directory.Exists(LegacyDir)) return;
+
+            Directory.CreateDirectory(Dir);
+            foreach (var name in new[] { "state.json", "theme.json" })
+            {
+                var from = Path.Combine(LegacyDir, name);
+                if (File.Exists(from)) File.Copy(from, Path.Combine(Dir, name), overwrite: false);
+            }
+        }
+        catch
+        {
+            // Nothing here is worth failing a launch over; the cost of losing
+            // it is a list the user can rebuild with the + button.
+        }
+    }
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -45,6 +85,8 @@ public sealed class AppState
 
     public static AppState Load()
     {
+        MigrateLegacyState();
+
         try
         {
             if (File.Exists(FilePath))

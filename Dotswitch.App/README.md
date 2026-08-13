@@ -1,4 +1,4 @@
-# Runway (standalone app)
+# Dotswitch (standalone app)
 
 A small frameless window that runs and manages .NET projects with `dotnet watch`.
 
@@ -12,7 +12,7 @@ extension API can reach. A separate process can, and does:
   whatever launched it)
 - **No tab bar, no host title bar** — the bar at the top is HTML, drawn by us
 - **Custom minimise, close and keep-on-top**
-- **Remembers its size and position** properly, in `%APPDATA%\Runway\state.json`
+- **Remembers its size and position** properly, in `%APPDATA%\Dotswitch\state.json`
 - Keeps running after VS Code closes
 
 ## Requirements
@@ -28,7 +28,7 @@ Already present on a typical Windows 11 dev machine, and verified on this one:
 dotnet publish -c Release -o dist
 ```
 
-`dist\Runway.exe` is what the VS Code extension launches.
+`dist\Dotswitch.exe` is what the VS Code extension launches.
 
 ## Use
 
@@ -36,7 +36,7 @@ Right-click a project in VS Code → **Run** → *Run with https* / *Run with ht
 The extension shells out to:
 
 ```
-Runway.exe --run <path-to.csproj> --profile https
+Dotswitch.exe --run <path-to.csproj> --profile https
 ```
 
 The app is single-instance: a second launch forwards its arguments over a named
@@ -66,7 +66,7 @@ own projects:
 
 1. `--non-interactive` is always passed, so watch cannot stop and wait for a
    keypress nothing will send.
-2. Runway watches for the rude-edit message and restarts the project itself,
+2. Dotswitch watches for the rude-edit message and restarts the project itself,
    after a short grace period in case watch recovers on its own.
 3. Hard restart forces a real compile whenever you want certainty.
 
