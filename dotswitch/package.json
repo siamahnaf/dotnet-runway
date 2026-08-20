@@ -2,7 +2,7 @@
   "name": "dotswitch",
   "displayName": "Dotswitch",
   "description": "Right-click a .NET project in the Explorer to run it in the Dotswitch app. Navigation only — Dotswitch itself manages the processes.",
-  "version": "3.2.6",
+  "version": "3.2.7",
   "publisher": "Siam-Ahnaf",
   "author": {
     "name": "Siam Ahnaf",

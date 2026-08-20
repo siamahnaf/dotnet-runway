@@ -33,7 +33,7 @@ menu. Neither half can do the other's job.
 **1. The app** — run the installer:
 
 ```
-Dotswitch-1.1.0.msi
+Dotswitch-1.1.1.msi
 ```
 
 Installs to `C:\Program Files\Dotswitch`, adds a Start-menu entry, and appears in
@@ -50,7 +50,7 @@ the app.
 **2. The extension** (optional):
 
 ```
-code --install-extension "dotswitch-3.2.6.vsix"
+code --install-extension "dotswitch-3.2.7.vsix"
 ```
 
 Or in VS Code: Extensions → `...` → **Install from VSIX**. Uninstall the old
@@ -122,8 +122,10 @@ projects:
 
 ## Theming
 
-The window is Dotswitch's own: two brand colours, `#FF405C` and `#E82968`, and
-their shades, on either a white or a black ground.
+The window is Dotswitch's own: one brand colour, `#FF405C`, and its shades, on
+either a white or a black ground. Depth comes from the same red darkened
+(`#D73343`, taken from the logo) rather than from a second hue, so the window
+and the icon are unmistakably the same mark.
 
 Which ground follows **Windows** by default. The theme button in the title bar
 cycles *follow Windows → light → dark* and the choice is remembered; while it is
@@ -140,9 +142,9 @@ to say *this project is up*. It appears in five places, all of them on a running
 card — the row tint, the full-height rail down its left edge, the status dot, the
 URL, and the dot in its profile pill. Not on the start button, not on the running
 count; letting it leak into the controls would cost it the meaning it carries.
-Failure keeps the deeper brand shade, and the dot changes shape as well as
-colour — solid when running, a hollow ring when crashed — so the two are never
-told apart by hue alone.
+Failure keeps the deeper shade of the brand, and the dot changes shape as well
+as colour — solid when running, a hollow ring when crashed — so the two are
+never told apart by hue alone.
 
 The extension still exports your VS Code theme to
 `%APPDATA%\Dotswitch\theme.json`, and the app still watches that file, but only
@@ -184,7 +186,7 @@ Individually:
 
 ```bash
 cd Dotswitch.App       && dotnet publish -c Release -o dist
-cd Dotswitch.Installer && wix build Dotswitch.wxs -arch x64 -o ../Dotswitch-1.1.0.msi
+cd Dotswitch.Installer && wix build Dotswitch.wxs -arch x64 -o ../Dotswitch-1.1.1.msi
 cd dotswitch    && npm install && npm run package
 ```
 
@@ -218,6 +220,6 @@ VS Code Extensions/
 │       └── theme.js         resolves the VS Code theme to a palette
 ├── dotswitch.png            the logo, source for both icons
 ├── build.ps1                builds app + installer + extension
-├── Dotswitch-1.1.0.msi      ← install this
-└── dotswitch-3.2.6.vsix
+├── Dotswitch-1.1.1.msi      ← install this
+└── dotswitch-3.2.7.vsix
 ```

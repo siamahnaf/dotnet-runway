@@ -1,14 +1,14 @@
 /* Dotswitch — standalone window.
 
-   Two brand colours and their shades, on white or on black. Light and dark are
+   One brand colour and its shades, on white or on black. Light and dark are
    the same design with the ground inverted, never a second stylesheet: every
    colour below resolves through a token, and only the tokens change.
 
    The brand owns the chrome and every accent; green is admitted for one job
    only, "this is running", because that is the question the window exists to
-   answer. Failure keeps the deeper brand shade, and state is still carried by
-   form as well as hue — a running card has a solid dot, a crashed one a hollow
-   ring — so the two never rely on colour alone. */
+   answer. Failure keeps the deeper shade of the brand, and state is still
+   carried by form as well as hue — a running card has a solid dot, a crashed
+   one a hollow ring — so the two never rely on colour alone. */
 
 :root {
   font-size: 16px;
@@ -16,11 +16,14 @@
 
   /* ── Brand ─────────────────────────────────────────────── */
 
+  /* One hue. Everything below is that red lightened or darkened — never a
+     second colour, so the window and the logo agree. */
+
   --brand: #FF405C;
-  --brand-deep: #E82968;
+  --brand-shade: #D73343;     /* the logo's own darker red, for depth */
   --brand-lift: #FF6B80;      /* brand raised toward white, for dark grounds */
-  --brand-sink: #C71B54;      /* brand sunk toward black, for light grounds */
-  --brand-grad: linear-gradient(135deg, var(--brand) 0%, var(--brand-deep) 100%);
+  --brand-sink: #C71B2C;      /* brand sunk toward black, for light grounds */
+  --brand-grad: linear-gradient(135deg, var(--brand) 0%, var(--brand-shade) 100%);
 
   /* ── Shape ─────────────────────────────────────────────── */
 
@@ -65,9 +68,9 @@
   /* Brand-tinted, not neutral grey: a resting row still belongs to the palette.
      Slightly stronger than a straight port of the dark values, because a tint
      this pale on white loses its edge and the cards stop reading as cards. */
-  --surface-1: rgba(232, 41, 104, 0.055);
-  --surface-2: rgba(232, 41, 104, 0.095);
-  --surface-3: rgba(232, 41, 104, 0.15);
+  --surface-1: rgba(215, 51, 67, 0.055);
+  --surface-2: rgba(215, 51, 67, 0.095);
+  --surface-3: rgba(215, 51, 67, 0.15);
   --hairline: rgba(23, 18, 27, 0.09);
 
   /* How strongly the brand washes across the title bar. White shows a tint far
@@ -77,8 +80,8 @@
 
   --tint-run: rgba(11, 154, 103, 0.08);
   --tint-run-hi: rgba(11, 154, 103, 0.13);
-  --tint-fail: rgba(232, 41, 104, 0.1);
-  --tint-fail-hi: rgba(232, 41, 104, 0.15);
+  --tint-fail: rgba(215, 51, 67, 0.1);
+  --tint-fail-hi: rgba(215, 51, 67, 0.15);
   --tint-busy: rgba(255, 64, 92, 0.07);
 
   --on-brand: #FFFFFF;
@@ -120,8 +123,8 @@
   --bg-glow:
     radial-gradient(115% 85% at 0% 0%,
       rgba(255, 64, 92, 0.075) 0%,
-      rgba(232, 41, 104, 0.036) 30%,
-      rgba(232, 41, 104, 0.013) 52%,
+      rgba(215, 51, 67, 0.036) 30%,
+      rgba(215, 51, 67, 0.013) 52%,
       transparent 74%);
 
   --ink: #F7F2F5;
@@ -143,8 +146,8 @@
 
   --tint-run: rgba(52, 211, 153, 0.12);
   --tint-run-hi: rgba(52, 211, 153, 0.18);
-  --tint-fail: rgba(232, 41, 104, 0.17);
-  --tint-fail-hi: rgba(232, 41, 104, 0.24);
+  --tint-fail: rgba(215, 51, 67, 0.17);
+  --tint-fail-hi: rgba(215, 51, 67, 0.24);
   --tint-busy: rgba(255, 64, 92, 0.12);
 
   --on-brand: #FFFFFF;
@@ -215,7 +218,7 @@ body {
   background:
     radial-gradient(120% 190% at 0% 0%,
       color-mix(in srgb, var(--brand) var(--wash-1), transparent) 0%,
-      color-mix(in srgb, var(--brand-deep) var(--wash-2), transparent) 45%,
+      color-mix(in srgb, var(--brand-shade) var(--wash-2), transparent) 45%,
       transparent 78%);
 }
 
@@ -229,7 +232,7 @@ body {
   pointer-events: none;
   background: linear-gradient(90deg,
     color-mix(in srgb, var(--brand) 55%, transparent) 0%,
-    color-mix(in srgb, var(--brand-deep) 22%, transparent) 38%,
+    color-mix(in srgb, var(--brand-shade) 22%, transparent) 38%,
     var(--hairline) 100%);
 }
 
@@ -239,10 +242,12 @@ body {
   width: 21px;
   height: 21px;
   flex: none;
-  border-radius: 6px;
   user-select: none;
   -webkit-user-drag: none;
-  box-shadow: var(--glow);
+  /* The mark is a shape on transparency, not a filled tile, so --glow is no use
+     here: a box-shadow is cast by the element's box and would sit behind the
+     logo as a rounded rectangle. drop-shadow follows the alpha instead. */
+  filter: drop-shadow(0 2px 5px color-mix(in srgb, var(--brand) 34%, transparent));
   transition: transform var(--t-mid) var(--spring);
 }
 
@@ -417,7 +422,7 @@ body {
 .ib.halt:hover:not(:disabled),
 .ib.soft-halt:hover:not(:disabled) {
   color: var(--brand-ink);
-  background: color-mix(in srgb, var(--brand-deep) 14%, transparent);
+  background: color-mix(in srgb, var(--brand-shade) 14%, transparent);
 }
 
 .ib.bolt:hover:not(:disabled) {
@@ -526,7 +531,7 @@ body {
 .card.running:hover { background-color: var(--tint-run-hi); }
 
 .card.crashed {
-  --rail: linear-gradient(180deg, var(--brand-deep), var(--brand-deep));
+  --rail: linear-gradient(180deg, var(--brand-shade), var(--brand-shade));
   background-color: var(--tint-fail);
 }
 .card.crashed:hover { background-color: var(--tint-fail-hi); }
@@ -628,8 +633,8 @@ body.is-dragging .ib:hover { background: transparent; }
 .dot.crashed {
   background: transparent;
   box-shadow:
-    inset 0 0 0 2.5px var(--brand-deep),
-    0 0 0 4px color-mix(in srgb, var(--brand-deep) 18%, transparent);
+    inset 0 0 0 2.5px var(--brand-shade),
+    0 0 0 4px color-mix(in srgb, var(--brand-shade) 18%, transparent);
 }
 
 .dot.starting,
@@ -968,7 +973,7 @@ body.is-dragging .ib:hover { background: transparent; }
   border-radius: 50%;
   border: 2.5px solid var(--surface-3);
   border-top-color: var(--brand);
-  border-right-color: var(--brand-deep);
+  border-right-color: var(--brand-shade);
   animation: spin 0.75s linear infinite;
 }
 
